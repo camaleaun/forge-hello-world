@@ -26,6 +26,13 @@ describe('given the repository workflows', () => {
     assert.ok(!/path: dist\/\*\s*$/m.test(text), 'upload only dist/*.dmg and dist/*.zip');
   });
 
+  it('when release.yml builds, then translations are strict and the language packs are uploaded next to the dmg and zip', () => {
+    const text = readFileSync('.github/workflows/release.yml', 'utf8');
+    assert.match(text, /forge\/bin\/forge build --strict-i18n/);
+    assert.match(text, /build\/src\/lang\/\*\.lang/);
+    assert.match(text, /dist\/\*\.lang/);
+  });
+
   it('when release.yml checks the tag, then the tag must equal v + the package.json version exactly (prereleases included)', () => {
     const text = readFileSync('.github/workflows/release.yml', 'utf8');
     assert.ok(!text.includes('%%-*'), 'the tag must not be stripped of its prerelease suffix');

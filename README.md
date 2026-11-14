@@ -30,6 +30,12 @@ open build/out/hello.app                           # the window
 The binary is about 73 KB. Add `-DFORGE_UNIVERSAL=ON` to the configure step for an arm64 + x86_64 build.
 `.forge-ref` pins the forge commit that CI and releases use.
 
+## Languages
+
+The app is written in English and has one translation, `languages/pt-BR.lang` (one `English<TAB>translation` per line). The window has a language dropdown; the choice is remembered. The app itself carries only English: each release also publishes the language pack (`hello-<version>-pt-BR.lang`) and the app downloads the one it needs on first use, then keeps it in its cache. Offline, it stays in English.
+
+To turn downloads off, set `"forge": { "i18n": { "download": false } }` in `package.json`. The command line takes `--lang pt-BR` (cache only, no network).
+
 ## macOS signing and notarization
 Without secrets, releases are signed ad-hoc and not notarized: on first launch macOS may refuse to open the app
 (System Settings > Privacy & Security > "Open Anyway", or `xattr -dr com.apple.quarantine /Applications/hello.app`).

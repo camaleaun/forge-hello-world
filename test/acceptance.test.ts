@@ -1,6 +1,7 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -14,7 +15,20 @@ let work = '';
 let binary = '';
 
 function run(...args: string[]) {
-  return spawnSync(binary, args, { encoding: 'utf8' });
+  return spawnSync(binary, args, { encoding: 'utf8', env: { ...process.env, LANG: 'C', LC_ALL: 'C', FORGE_LANG: '' } });
+}
+
+// The CLI reads language packs from the cache only; put the generated pack there as the app would after a download.
+function runIn(language: string, ...args: string[]) {
+  const cache = join(work, 'cache');
+  const lang = join(work, 'src/lang');
+  mkdirSync(cache, { recursive: true });
+  for (const file of readdirSync(lang)) {
+    const tag = file.replace(/^hello-.*?-(pt-BR)\.lang$/, '$1');
+    const sha = createHash('sha256').update(readFileSync(join(lang, file))).digest('hex').slice(0, 12);
+    copyFileSync(join(lang, file), join(cache, `${tag}-${sha}.lang`));
+  }
+  return spawnSync(binary, args, { encoding: 'utf8', env: { ...process.env, FORGE_LANG: language, FORGE_I18N_CACHE_DIR: cache } });
 }
 
 describe('given the hello-world sources and a forge checkout', { skip: !canBuild && 'needs macOS and cmake' }, () => {
@@ -37,6 +51,18 @@ describe('given the hello-world sources and a forge checkout', { skip: !canBuild
 
   it('when "hello --version" runs, then it prints the version from package.json', () => {
     assert.equal(run('--version').stdout, `${version}\n`);
+  });
+
+  it('when the pack is in the cache and "hello --lang pt-BR --greet" runs, then it prints the translation', () => {
+    assert.equal(runIn('pt-BR', '--greet').stdout, 'Olá, mundo!\n');
+  });
+
+  it('when "hello --help" runs in pt-BR, then the option description is translated', () => {
+    assert.match(runIn('pt-BR', '--help').stdout, /Mostra a saudação/);
+  });
+
+  it('when the build runs, then one pack file per language is generated', () => {
+    assert.deepEqual(readdirSync(join(work, 'src/lang')), [`hello-${version}-pt-BR.lang`]);
   });
 
   it('when the binary size is measured, then it is under 300 KB', () => {

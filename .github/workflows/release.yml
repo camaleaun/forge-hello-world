@@ -47,7 +47,7 @@ jobs:
       - name: Import the signing certificate (skipped without secrets)
         run: forge/scripts/macos-sign.sh import-certificate
       - name: Generate sources
-        run: forge/bin/forge build --out build/src
+        run: forge/bin/forge build --strict-i18n --out build/src
       - name: Build
         run: |
           cmake -S build/src -B build/out -DCMAKE_BUILD_TYPE=Release
@@ -67,12 +67,15 @@ jobs:
           forge/scripts/macos-sign.sh notarize "dist/hello-${version}-darwin-arm64.dmg"
           forge/scripts/macos-sign.sh staple "dist/hello-${version}-darwin-arm64.dmg"
           ditto -c -k --keepParent build/out/hello.app "dist/hello-${version}-darwin-arm64.zip"
+          # Language packs ship next to the app; the app downloads the one it needs from this release.
+          cp build/src/lang/*.lang dist/
       - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: |
             dist/*.dmg
             dist/*.zip
+            dist/*.lang
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
