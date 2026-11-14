@@ -9,7 +9,7 @@ const project = new URL('../', import.meta.url).pathname;
 const forgeHome = process.env.FORGE_HOME ?? new URL('../../forge', import.meta.url).pathname;
 const canBuild = process.platform === 'darwin' && spawnSync('cmake', ['--version']).status === 0;
 const MAX_BINARY_BYTES = 300 * 1024;
-const version: string = JSON.parse(readFileSync(join(project, 'forge.json'), 'utf8')).app.version;
+const version: string = JSON.parse(readFileSync(join(project, 'package.json'), 'utf8')).version;
 let work = '';
 let binary = '';
 
@@ -35,7 +35,7 @@ describe('given the hello-world sources and a forge checkout', { skip: !canBuild
     assert.equal(run('--greet').stdout, 'Hello, world!\n');
   });
 
-  it('when "hello --version" runs, then it prints the version from forge.json', () => {
+  it('when "hello --version" runs, then it prints the version from package.json', () => {
     assert.equal(run('--version').stdout, `${version}\n`);
   });
 

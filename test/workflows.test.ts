@@ -26,9 +26,15 @@ describe('given the repository workflows', () => {
     assert.ok(!/path: dist\/\*\s*$/m.test(text), 'upload only dist/*.dmg and dist/*.zip');
   });
 
-  it('when release.yml checks the tag, then the tag must equal v + the forge.json version exactly (prereleases included)', () => {
+  it('when release.yml checks the tag, then the tag must equal v + the package.json version exactly (prereleases included)', () => {
     const text = readFileSync('.github/workflows/release.yml', 'utf8');
     assert.ok(!text.includes('%%-*'), 'the tag must not be stripped of its prerelease suffix');
     assert.match(text, /"v\$\{version\}" != "\$GITHUB_REF_NAME"/);
+  });
+
+  it('when release.yml needs the version, then it asks forge info instead of reading forge.json', () => {
+    const text = readFileSync('.github/workflows/release.yml', 'utf8');
+    assert.ok(!text.includes('forge.json'), 'forge.json no longer exists');
+    assert.ok(text.includes('forge/bin/forge info --field version'));
   });
 });

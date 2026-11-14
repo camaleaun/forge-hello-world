@@ -28,12 +28,12 @@ jobs:
         run: npm test
         env:
           FORGE_HOME: ${{ github.workspace }}/forge
-      - name: Check the tag matches forge.json
+      - name: Check the tag matches the package version
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          version="$(node -p "JSON.parse(require('fs').readFileSync('forge.json', 'utf8')).app.version")"
+          version="$(forge/bin/forge info --field version)"
           if [ "v${version}" != "$GITHUB_REF_NAME" ]; then
-            echo "tag ${GITHUB_REF_NAME} does not match forge.json version ${version}" >&2
+            echo "tag ${GITHUB_REF_NAME} does not match package.json version ${version}" >&2
             exit 1
           fi
       - name: Generate sources
@@ -45,7 +45,7 @@ jobs:
           codesign --force --deep -s - build/out/hello.app
       - name: Package
         run: |
-          version="$(node -p "JSON.parse(require('fs').readFileSync('forge.json', 'utf8')).app.version")"
+          version="$(forge/bin/forge info --field version)"
           mkdir -p dist
           cpack --config build/out/CPackConfig.cmake -G DragNDrop -B build/cpack
           mv build/cpack/hello-*.dmg "dist/hello-${version}-darwin-arm64.dmg"
