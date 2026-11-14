@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
@@ -17,8 +17,8 @@ describe('given the app name', () => {
   });
 
   it('when the tracked files are searched, then no artifact or command is still called plain "hello"', () => {
-    const files = spawnSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], { encoding: 'utf8' }).stdout
-      .split('\n').filter((f) => f && !f.startsWith('test/name.test.ts') && !f.endsWith('.svg') && !f.startsWith('native/linux/') && !f.startsWith('test/gui/') && !f.startsWith('.github/workflows/ci.yml'));
+    const files = spawnSync('git', ['ls-files'], { encoding: 'utf8' }).stdout
+      .split('\n').filter((f) => f && existsSync(f) && statSync(f).isFile() && !f.startsWith('test/name.test.ts') && !f.endsWith('.svg') && !f.startsWith('native/linux/') && !f.startsWith('test/gui/') && !f.startsWith('.github/workflows/ci.yml'));
     const stray: string[] = [];
     for (const file of files) {
       // The README explains the rename, so its intro and migration notes name the old app on purpose.
