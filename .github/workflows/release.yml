@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the pinned forge ref
+        id: ref
+        run: echo "ref=$(cat .forge-ref)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: camaleaun/forge
+          ref: ${{ steps.ref.outputs.ref }}
+          path: forge
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Test
+        run: npm test
+        env:
+          FORGE_HOME: ${{ github.workspace }}/forge
+      - name: Check the tag matches forge.json
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version="$(node -p "JSON.parse(require('fs').readFileSync('forge.json', 'utf8')).app.version")"
+          if [ "v${version}" != "${GITHUB_REF_NAME%%-*}" ]; then
+            echo "tag ${GITHUB_REF_NAME} does not match forge.json version ${version}" >&2
+            exit 1
+          fi
+      - name: Generate sources
+        run: forge/bin/forge build --out build/src
+      - name: Build
+        run: |
+          cmake -S build/src -B build/out -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/out
+          codesign --force --deep -s - build/out/hello.app
+      - name: Package
+        run: |
+          version="$(node -p "JSON.parse(require('fs').readFileSync('forge.json', 'utf8')).app.version")"
+          mkdir -p dist
+          cpack --config build/out/CPackConfig.cmake -G DragNDrop -B dist
+          mv dist/hello-*.dmg "dist/hello-${version}-darwin-arm64.dmg"
+          ditto -c -k --keepParent build/out/hello.app "dist/hello-${version}-darwin-arm64.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the pinned forge ref
+        id: ref
+        run: echo "ref=$(cat .forge-ref)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: camaleaun/forge
+          ref: ${{ steps.ref.outputs.ref }}
+          path: forge
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Write latest.json
+        run: forge/bin/forge manifest --dir dist --tag "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > latest.json
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=""
+          case "$GITHUB_REF_NAME" in *-*) flags="--prerelease" ;; esac
+          # shellcheck disable=SC2086
+          gh release create "$GITHUB_REF_NAME" dist/* latest.json --generate-notes $flags
