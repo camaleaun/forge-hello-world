@@ -61,6 +61,12 @@ describe('given the hello-world sources and a forge checkout', { skip: !canBuild
     assert.match(runIn('pt-BR', '--help').stdout, /Mostra a saudação/);
   });
 
+  it('when "hello --help" runs in pt-BR, then forge\'s own texts come translated too, and --lang en goes back to English with the pack still cached', () => {
+    assert.match(runIn('pt-BR', '--help').stdout, /--version {2}Mostra a versão/);
+    assert.match(runIn('en', '--help').stdout, /--version {2}Print the version/);
+    assert.equal(runIn('en', '--greet').stdout, 'Hello, world!\n');
+  });
+
   it('when the build runs, then one pack file per language is generated', () => {
     assert.deepEqual(readdirSync(join(work, 'src/lang')), [`hello-${version}-pt-BR.lang`]);
   });
