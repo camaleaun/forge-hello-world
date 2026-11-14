@@ -25,8 +25,23 @@ open build/out/hello.app                           # the window
 The binary is about 73 KB. Add `-DFORGE_UNIVERSAL=ON` to the configure step for an arm64 + x86_64 build.
 `.forge-ref` pins the forge commit that CI and releases use.
 
-## macOS and unsigned apps
-Releases are not notarized yet. On first launch macOS may refuse to open the app: use System Settings > Privacy & Security > "Open Anyway".
+## macOS signing and notarization
+Without secrets, releases are signed ad-hoc and not notarized: on first launch macOS may refuse to open the app
+(System Settings > Privacy & Security > "Open Anyway", or `xattr -dr com.apple.quarantine /Applications/hello.app`).
+
+To ship signed and notarized builds, add these repository secrets (Settings > Secrets and variables > Actions).
+The release workflow uses them automatically through `forge/scripts/macos-sign.sh`; nothing else changes.
+
+| Secret | What it is |
+|---|---|
+| `MACOS_CERTIFICATE_P12` | base64 of your "Developer ID Application" certificate exported as `.p12` (`base64 -i cert.p12 \| pbcopy`) |
+| `MACOS_CERTIFICATE_PASSWORD` | the password you set when exporting the `.p12` |
+| `MACOS_SIGNING_IDENTITY` | e.g. `Developer ID Application: Your Name (TEAMID)` |
+| `NOTARY_KEY_P8` | base64 of the App Store Connect API key (`AuthKey_XXXX.p8`) |
+| `NOTARY_KEY_ID` | the API key id |
+| `NOTARY_ISSUER_ID` | the API issuer id |
+
+It needs a paid Apple Developer account. The app and the `.dmg` are signed with the hardened runtime, submitted to `notarytool` and stapled.
 
 ## Tests
 `npm test` runs the acceptance test (needs macOS, cmake and a forge checkout) and lints the workflows.

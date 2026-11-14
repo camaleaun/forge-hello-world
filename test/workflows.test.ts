@@ -37,4 +37,21 @@ describe('given the repository workflows', () => {
     assert.ok(!text.includes('forge.json'), 'forge.json no longer exists');
     assert.ok(text.includes('forge/bin/forge info --field version'));
   });
+
+  it('when release.yml signs, then it goes through macos-sign.sh (ad-hoc by default, Developer ID + notarization when secrets exist)', () => {
+    const text = readFileSync('.github/workflows/release.yml', 'utf8');
+    assert.ok(!text.includes('codesign --force --deep -s -'), 'signing must go through the script');
+    for (const step of [
+      'forge/scripts/macos-sign.sh import-certificate',
+      'forge/scripts/macos-sign.sh sign build/out/hello.app',
+      'forge/scripts/macos-sign.sh notarize build/out/hello.app',
+      'forge/scripts/macos-sign.sh staple build/out/hello.app',
+      'forge/scripts/macos-sign.sh sign "dist/hello-${version}-darwin-arm64.dmg"',
+      'forge/scripts/macos-sign.sh notarize "dist/hello-${version}-darwin-arm64.dmg"',
+      'forge/scripts/macos-sign.sh staple "dist/hello-${version}-darwin-arm64.dmg"',
+    ]) assert.ok(text.includes(step), step);
+    for (const secret of ['MACOS_CERTIFICATE_P12', 'MACOS_CERTIFICATE_PASSWORD', 'MACOS_SIGNING_IDENTITY', 'NOTARY_KEY_P8', 'NOTARY_KEY_ID', 'NOTARY_ISSUER_ID']) {
+      assert.ok(text.includes(`${secret}: \${{ secrets.${secret} }}`), secret);
+    }
+  });
 });
