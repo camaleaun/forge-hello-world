@@ -108,3 +108,14 @@ describe('given the translated buttons', () => {
     assert.ok(Number(width[1]) >= 120, `${width[1]} px is too narrow for "Cumprimentar"`);
   });
 });
+
+describe('given the macOS look of the footer', () => {
+  // Reference: a macOS save panel has ~20 pt side margins, ~21 pt above the buttons, ~8 pt between buttons; the Windows 7 metrics (7-14 px, 12-16 px) look cramped there.
+  it('when the screen CSS files are read, then @only macos gives the footers system-style metrics (20 px sides, 8 px between buttons) and the other targets keep the installer metrics', () => {
+    const language = readFileSync('screens/Language.css', 'utf8');
+    const hello = readFileSync('screens/Hello.css', 'utf8');
+    assert.match(language, /@only macos\s*\{[\s\S]*?\.language-footer\s*\{[^}]*gap:\s*8px;[^}]*padding:\s*16px 20px 20px 20px;/);
+    assert.match(hello, /@only macos\s*\{[\s\S]*?\.hello-footer\s*\{[^}]*gap:\s*8px;[^}]*padding:\s*21px 20px 22px 20px;[^}]*\}\s*\.hello-nav\s*\{[^}]*gap:\s*8px;/);
+    assert.match(language, /\.language-footer\s*\{ flex-direction: row; justify-content: end; gap: 12px; padding: 7px; \}/);
+  });
+});
