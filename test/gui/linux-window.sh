@@ -120,7 +120,8 @@ fi
 
 # --- Side by side, when both builds have been looked at ---------------------------------------------
 if [ -f "$SHOTS_DIR/forge-after.png" ] && [ -f "$SHOTS_DIR/native-after.png" ]; then
-  montage -label native "$SHOTS_DIR/native-after.png" -label forge "$SHOTS_DIR/forge-after.png" \
-    -tile 2x1 -geometry +10+10 -background white "$SHOTS_DIR/compare.png"
+  # No labels: they need a default font the runners do not have. Native is on the left, forge on the right.
+  montage "$SHOTS_DIR/native-after.png" "$SHOTS_DIR/forge-after.png" \
+    -tile 2x1 -geometry +10+10 -background white "$SHOTS_DIR/compare.png" || echo "montage failed; the checks above are what matter"
 fi
 echo "OK ($label): screenshots in $SHOTS_DIR"

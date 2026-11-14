@@ -56,5 +56,10 @@ describe('given the versioned window check script', () => {
       assert.match(text(), /trap .* EXIT/);
       assert.match(text(), /compare\.png/);
     });
+
+    it('then the montage needs no font (no -label) and cannot fail the run', () => {
+      assert.ok(!/montage[^\n]*-label|-label/.test(text()), 'labels need a default font that runners lack');
+      assert.match(text(), /montage .*\|\| echo/s);
+    });
   });
 });
