@@ -54,4 +54,10 @@ describe('given the repository workflows', () => {
       assert.ok(text.includes(`${secret}: \${{ secrets.${secret} }}`), secret);
     }
   });
+
+  it('when release.yml builds the DMG, then it goes through macos-dmg.sh (retries when the Finder keeps the volume busy)', () => {
+    const text = readFileSync('.github/workflows/release.yml', 'utf8');
+    assert.ok(text.includes('forge/scripts/macos-dmg.sh build/out/CPackConfig.cmake build/cpack hello'));
+    assert.ok(!/^\s*cpack /m.test(text), 'cpack must not be called directly');
+  });
 });

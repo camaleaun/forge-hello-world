@@ -61,7 +61,7 @@ jobs:
         run: |
           version="$(forge/bin/forge info --field version)"
           mkdir -p dist
-          cpack --config build/out/CPackConfig.cmake -G DragNDrop -B build/cpack
+          forge/scripts/macos-dmg.sh build/out/CPackConfig.cmake build/cpack hello
           mv build/cpack/hello-*.dmg "dist/hello-${version}-darwin-arm64.dmg"
           forge/scripts/macos-sign.sh sign "dist/hello-${version}-darwin-arm64.dmg"
           forge/scripts/macos-sign.sh notarize "dist/hello-${version}-darwin-arm64.dmg"
