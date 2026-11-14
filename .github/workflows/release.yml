@@ -133,9 +133,50 @@ jobs:
           name: manifest
           path: latest.json
 
+  # Installs the real packages in clean containers and runs the installed app (also on a dry run, before anything is published).
+  packages:
+    needs: [check, build]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, arch: x86_64 }
+          - { os: ubuntu-24.04-arm, arch: arm64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-linux-${{ matrix.arch }}
+          path: dist
+      - name: Install the .deb on Ubuntu 24.04 and run the installed app
+        run: |
+          docker run --rm -v "$PWD/dist:/dist:ro" ubuntu:24.04 bash -euc '
+            apt-get update -qq
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq /dist/hello-forge-*-linux-*.deb
+            hello-forge --version
+            test "$(hello-forge --greet)" = "Hello, world!"
+            pack="$(ls /dist/hello-forge-*-pt-BR.lang)"
+            sha="$(sha256sum "$pack" | cut -c1-12)"
+            mkdir -p /tmp/cache
+            cp "$pack" "/tmp/cache/pt-BR-$sha.lang"
+            test "$(FORGE_I18N_CACHE_DIR=/tmp/cache hello-forge --lang pt-BR --greet)" = "Olá, mundo!"
+          '
+      - name: Install the .rpm on Fedora 41 and run the installed app
+        run: |
+          docker run --rm -v "$PWD/dist:/dist:ro" fedora:41 bash -euc '
+            dnf install -y -q /dist/hello-forge-*-linux-*.rpm
+            hello-forge --version
+            test "$(hello-forge --greet)" = "Hello, world!"
+            pack="$(ls /dist/hello-forge-*-pt-BR.lang)"
+            sha="$(sha256sum "$pack" | cut -c1-12)"
+            mkdir -p /tmp/cache
+            cp "$pack" "/tmp/cache/pt-BR-$sha.lang"
+            test "$(FORGE_I18N_CACHE_DIR=/tmp/cache hello-forge --lang pt-BR --greet)" = "Olá, mundo!"
+          '
+
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [check, manifest]
+    needs: [check, manifest, packages]
     runs-on: ubuntu-latest
     permissions:
       contents: write

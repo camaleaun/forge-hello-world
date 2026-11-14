@@ -19,8 +19,9 @@ const version: string = JSON.parse(readFileSync(join(project, 'package.json'), '
 let work = '';
 let binary = '';
 
+// FORGE_LANG_PREFERENCE beats the language the app saved on this machine (the dropdown choice), so the tests do not depend on it.
 function run(...args: string[]) {
-  return spawnSync(binary, args, { encoding: 'utf8', env: { ...process.env, LANG: 'C', LC_ALL: 'C', FORGE_LANG: '' } });
+  return spawnSync(binary, args, { encoding: 'utf8', env: { ...process.env, LANG: 'C', LC_ALL: 'C', FORGE_LANG: '', FORGE_LANG_PREFERENCE: 'en' } });
 }
 
 // The CLI reads language packs from the cache only; put the generated pack there as the app would after a download.

@@ -74,6 +74,21 @@ describe('given the repository workflows', () => {
     assert.match(job('build'), /needs: check/);
   });
 
+  it('when the packages job is read, then on both Linux runners it installs the .deb on ubuntu:24.04 and the .rpm on fedora and runs the installed app (--greet, --version, --lang pt-BR from the pack)', () => {
+    const packages = job('packages');
+    assert.match(packages, /needs: \[check, build\]/);
+    assert.match(packages, /ubuntu-24\.04-arm/);
+    assert.match(packages, /name: dist-linux-\$\{\{ matrix\.arch \}\}/);
+    assert.match(packages, /ubuntu:24\.04/);
+    assert.match(packages, /fedora:41/);
+    assert.match(packages, /apt-get install[^\n]*\.deb/);
+    assert.match(packages, /dnf install[^\n]*\.rpm/);
+    assert.match(packages, /hello-forge --version/);
+    assert.match(packages, /hello-forge --greet/);
+    assert.match(packages, /--lang pt-BR/);
+    assert.match(packages, /Olá, mundo!/);
+  });
+
   it('when release.yml needs the version, then it asks forge info instead of reading forge.json', () => {
     const text = release();
     assert.ok(!text.includes('forge.json'), 'forge.json no longer exists');
@@ -108,7 +123,7 @@ describe('given the repository workflows', () => {
     const publish = job('publish');
     assert.equal((text.match(/forge-action\/publish@/g) ?? []).length, 1);
     assert.match(publish, /if: startsWith\(github\.ref, 'refs\/tags\/v'\)/);
-    assert.match(publish, /needs: \[check, manifest\]/);
+    assert.match(publish, /needs: \[check, manifest, packages\]/);
     assert.match(publish, /contents: write/);
     assert.ok(publish.indexOf('actions/checkout@v4') < publish.indexOf('forge-action/publish@'), 'gh release create needs a repository');
     assert.match(publish, /pattern: dist-\*/);
