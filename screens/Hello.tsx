@@ -20,7 +20,7 @@ export default function Hello() {
       <view class="hello-footer">
         <view class="hello-nav">
           <button onClick={back}>{__('Back')}</button>
-          <button primary onClick={greet}>{__('Greet')}</button>
+          <button primary class="hello-greet" onClick={greet}>{__('Greet')}</button>
         </view>
         <button cancel onClick={quit}>{__('Close')}</button>
       </view>

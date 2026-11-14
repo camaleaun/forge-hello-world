@@ -23,7 +23,7 @@ sudo apt install g++ pkg-config libgtk-4-dev
 
 | | forge version | hand-written C++ |
 |---|---|---|
-| What you write | `../../App.tsx` (19 lines) + `../../App.css` (7 lines) + `../../screens/Language.tsx` (23 lines) + `../../screens/Language.css` (5 lines) + `../../screens/Hello.tsx` (29 lines) + `../../screens/Hello.css` (7 lines) + `../../languages/pt-BR.lang` (12 lines) | `main.cpp` (88 lines) + `build.sh` (17 lines) |
+| What you write | `../../App.tsx` (19 lines) + `../../App.css` (7 lines) + `../../screens/Language.tsx` (23 lines) + `../../screens/Language.css` (5 lines) + `../../screens/Hello.tsx` (29 lines) + `../../screens/Hello.css` (9 lines) + `../../languages/pt-BR.lang` (12 lines) | `main.cpp` (88 lines) + `build.sh` (17 lines) |
 | What gets compiled | about 2,000 lines of generated C++/CMake (not written by you) | the 88 lines above |
 | Binary size (x86_64, `-Os`, stripped) | 96,968 bytes (CI, with the language support) | 14,544 bytes (CI) |
 | Same source also runs | on macOS, in the browser preview (`forge start`), later Windows/web/mobile | Linux only |

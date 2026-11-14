@@ -28,7 +28,7 @@ describe('given the hello-forge sources generated for Linux', () => {
   it('when CMakeLists.txt is read, then the target, the package and the file names are hello-forge', () => {
     const cmake = readFileSync(join(out, 'CMakeLists.txt'), 'utf8');
     assert.match(cmake, /project\(hello-forge VERSION 0\.4\.0 LANGUAGES CXX\)/);
-    assert.match(cmake, /CPACK_PACKAGE_FILE_NAME "hello-forge-0\.4\.0-rc\.1-linux-\$\{FORGE_ARCH\}"/);
+    assert.ok(cmake.includes(`CPACK_PACKAGE_FILE_NAME "hello-forge-${version}-linux-\${FORGE_ARCH}"`));
     assert.ok(cmake.includes(version));
   });
 

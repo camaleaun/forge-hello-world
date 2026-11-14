@@ -5,3 +5,5 @@
 .hello-divider { height: 1px; background: #80808066; }
 .hello-footer  { flex-direction: row; justify-content: end; gap: 16px; padding: 25px 14px 14px 14px; }
 .hello-nav     { flex-direction: row; gap: 2px; }
+/* Wider than the 85 px default: a fixed width clips the longer translations ("Cumprimentar") on macOS. */
+.hello-greet   { width: 120px; }

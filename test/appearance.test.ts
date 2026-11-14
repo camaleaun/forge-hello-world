@@ -61,7 +61,7 @@ describe('given the two screens of the forge app (a language dialog, then the gr
     const text = read('screens/Hello.tsx');
     assert.match(text, /<step id="greeting" width=\{600\} height=\{440\}>/);
     assert.match(text, /<text class="hello-message">\{message\}<\/text>/);
-    assert.match(text, /<view class="hello-divider" \/>\s*<view class="hello-footer">\s*<view class="hello-nav">\s*<button onClick=\{back\}>\{__\('Back'\)\}<\/button>\s*<button primary onClick=\{greet\}>\{__\('Greet'\)\}<\/button>\s*<\/view>\s*<button cancel onClick=\{quit\}>\{__\('Close'\)\}<\/button>/);
+    assert.match(text, /<view class="hello-divider" \/>\s*<view class="hello-footer">\s*<view class="hello-nav">\s*<button onClick=\{back\}>\{__\('Back'\)\}<\/button>\s*<button primary class="hello-greet" onClick=\{greet\}>\{__\('Greet'\)\}<\/button>\s*<\/view>\s*<button cancel onClick=\{quit\}>\{__\('Close'\)\}<\/button>/);
     assert.match(text, /<only macos><text class="hello-hint">\{__\('Quit with Cmd\+Q'\)\}<\/text><\/only>/);
     assert.match(text, /<only linux><text class="hello-hint">\{__\('Quit with Ctrl\+Q'\)\}<\/text><\/only>/);
     assert.ok(text.indexOf('hello-message') < text.indexOf('Quit with Cmd+Q') && text.indexOf('Quit with Cmd+Q') < text.indexOf('hello-divider'));
@@ -94,5 +94,17 @@ describe('given the two screens of the forge app (a language dialog, then the gr
     const classes = (file: string) => [...read(file).matchAll(/\.([a-z][\w-]*)/g)].map((m) => m[1]);
     const shared = classes('screens/Language.css').filter((name) => classes('screens/Hello.css').includes(name));
     assert.deepEqual(shared, []);
+  });
+});
+
+describe('given the translated buttons', () => {
+  // A fixed button width is a hard limit on macOS: "Cumprimentar" (pt-BR for Greet) is clipped in an 85 px button.
+  it('when the Greet button is read, then it is wider than the 85 px default so the longest translation fits', () => {
+    const tsx = readFileSync('screens/Hello.tsx', 'utf8');
+    assert.match(tsx, /<button[^>]*class="hello-greet"[^>]*>\{__\('Greet'\)\}<\/button>/);
+    const css = readFileSync('screens/Hello.css', 'utf8');
+    const width = /\.hello-greet\s*\{[^}]*width:\s*(\d+)px/.exec(css);
+    assert.ok(width, '.hello-greet needs its own width');
+    assert.ok(Number(width[1]) >= 120, `${width[1]} px is too narrow for "Cumprimentar"`);
   });
 });
