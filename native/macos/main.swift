@@ -43,11 +43,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         stack.spacing = 12
         stack.edgeInsets = NSEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
 
-        // The style mask decides what the user can do: no .resizable means a fixed size.
+        // The style mask decides what the user can do: .resizable also enables the green maximize button,
+        // and leaving it out would make the window a fixed size.
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 320, height: 120),
-                          styleMask: [.titled, .closable, .miniaturizable],
+                          styleMask: [.titled, .closable, .miniaturizable, .resizable],
                           backing: .buffered, defer: false)
         window.title = "Hello, forge"
+        window.contentMinSize = NSSize(width: 320, height: 120)
         window.contentView = stack
         window.center()  // without this the window opens at the bottom-left corner of the screen
         window.makeKeyAndOrderFront(nil)

@@ -14,3 +14,12 @@ describe('given the hello app in dark mode', () => {
     assert.ok(!/textColor\s*=/.test(swift), 'do not set textColor: the default label color follows light and dark mode');
   });
 });
+
+describe('given the hello window', () => {
+  it('when the native Swift version is read, then the window can be resized, maximized and minimized, with a minimum size', () => {
+    const swift = readFileSync('native/macos/main.swift', 'utf8');
+    assert.match(swift, /styleMask: \[[^\]]*\.resizable[^\]]*\]/);
+    assert.match(swift, /styleMask: \[[^\]]*\.miniaturizable[^\]]*\]/);
+    assert.match(swift, /window\.contentMinSize = NSSize\(width: 320, height: 120\)/);
+  });
+});
