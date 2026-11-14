@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [trunk]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the pinned forge ref
+        id: ref
+        run: echo "ref=$(cat .forge-ref)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: camaleaun/forge
+          ref: ${{ steps.ref.outputs.ref }}
+          path: forge
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Test
+        run: npm test
+        env:
+          FORGE_HOME: ${{ github.workspace }}/forge
