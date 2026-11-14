@@ -13,6 +13,12 @@ describe('given the hello app in dark mode', () => {
     const swift = readFileSync('native/macos/main.swift', 'utf8');
     assert.ok(!/textColor\s*=/.test(swift), 'do not set textColor: the default label color follows light and dark mode');
   });
+
+  it('when the native C++ version is read, then it does not hardcode a text color either', () => {
+    const cpp = readFileSync('native/linux/main.cpp', 'utf8');
+    assert.ok(!/(^|[\s;{"])color\s*:/m.test(cpp), 'do not set color in the CSS: the GTK theme picks the text color for light and dark');
+    assert.ok(!/gdk_rgba|override_color|<span[^>]*foreground/.test(cpp), 'do not set a color through the API either');
+  });
 });
 
 describe('given the hello window', () => {
