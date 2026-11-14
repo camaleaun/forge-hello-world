@@ -1,0 +1,7 @@
+/* Screen 2 (600x440). The divider is a neutral translucent gray (#rrggbbaa), so it works in light and dark. */
+.hello-content { flex: 1; padding: 16px; gap: 12px; }
+.hello-message { font-size: 15px; }
+.hello-hint    { font-size: 12px; }
+.hello-divider { height: 1px; background: #80808066; }
+.hello-footer  { flex-direction: row; justify-content: end; gap: 16px; padding: 25px 14px 14px 14px; }
+.hello-nav     { flex-direction: row; gap: 2px; }

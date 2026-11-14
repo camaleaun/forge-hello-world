@@ -7,14 +7,18 @@ The app is called **hello-forge** (`hello` is too generic and may clash with oth
 The smallest [forge](https://github.com/camaleaun/forge) app: a label, a button and a command, written as a tiny web app.
 
 - `package.json`: app name and version.
-- `App.tsx`: the markup (`<window>`, `<text>`, `<button>`, `<progress source="language-download" />` and per-target `<only macos>`/`<only linux>` shortcut hints) and the behavior (`state`, handlers, CLI commands).
-- `App.css`: the look (flex layout, sizes, an `@media (min-width: 480px)` rule; no colors, so dark mode works).
+- `App.tsx`: the two screens in `<steps>` and the CLI command (`--greet`).
+- `screens/Language.tsx` and `screens/Language.css`: screen 1, a 420x180 language dialog like the first one of a classic installer: a prompt, the language dropdown, the language-download progress bar (`<progress source="language-download" />`), and **OK** (the default button, Enter; disabled while a language pack downloads) and **Cancel** (Escape) at the bottom right.
+- `screens/Hello.tsx` and `screens/Hello.css`: screen 2, 600x440: the greeting (`state`, a handler), the per-target `<only macos>`/`<only linux>` shortcut hint, a thin divider, and a footer with **Back** and **Greet** (the default button) together and **Close** apart.
+- `App.css`: what is shared: the window size of the first screen, 85x24 push buttons and an `@media (min-width: 480px)` rule; no colors, so dark mode works. Each screen keeps its own numbers (margins, gaps) in its own CSS file, with class names that differ because CSS is global.
 - `icon.svg`: the app icon (forge turns it into `AppIcon.icns`).
 
 ```tsx
-const message = state('Press the button');
-function greet() { message.set('Hello, world!'); }
+const message = state(__('Press the button'));
+export function greet() { message.set(__('Hello, world!')); }
 ```
+
+Choosing a language and pressing OK shows the second screen: the window changes size (it is not resizable). Back returns to the language dialog.
 
 The same app written by hand is in [`native/macos`](native/macos) (Swift + AppKit) and [`native/linux`](native/linux) (C++ + GTK 4) so you can compare the code, the size and what forge adds.
 

@@ -4,9 +4,11 @@ import { readFileSync } from 'node:fs';
 
 describe('given the hello app in dark mode', () => {
   // A fixed text color (like #222) is unreadable on the dark window background; the system text color adapts.
-  it('when App.css is read, then it does not hardcode a text color', () => {
-    const css = readFileSync('App.css', 'utf8');
-    assert.ok(!/(^|[\s;{])color\s*:/m.test(css), 'remove the color declaration and let the system pick the text color');
+  it('when every CSS file of the forge app is read, then none hardcodes a text color', () => {
+    for (const file of ['App.css', 'screens/Language.css', 'screens/Hello.css']) {
+      const css = readFileSync(file, 'utf8');
+      assert.ok(!/(^|[\s;{])color\s*:/m.test(css), `${file}: remove the color declaration and let the system pick the text color`);
+    }
   });
 
   it('when the native Swift version is read, then it does not hardcode a text color either', () => {
@@ -30,30 +32,67 @@ describe('given the hello window', () => {
   });
 });
 
-describe('given the UI v2 additions of the forge app', () => {
-  const tsx = () => readFileSync('App.tsx', 'utf8');
-  const css = () => readFileSync('App.css', 'utf8');
+describe('given the two screens of the forge app (a language dialog, then the greeting)', () => {
+  const read = (file: string) => readFileSync(file, 'utf8');
+  // The declarations of one rule, whitespace squeezed.
+  const rule = (css: string, selector: string) => {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = css.match(new RegExp(`(?:^|\\n)${escaped}\\s*\\{([^}]*)\\}`));
+    assert.ok(match, `${selector} is missing`);
+    return match[1].replace(/\s+/g, ' ').trim();
+  };
 
-  it('when App.tsx is read, then the progress bar sits right below the language dropdown and is bound to the language download', () => {
-    assert.match(tsx(), /<select language \/>\s*<progress source="language-download" \/>/);
+  it('when App.tsx is read, then it lists the two screens as components of <steps>, language first', () => {
+    const text = read('App.tsx');
+    assert.match(text, /<steps>\s*<Language \/>\s*<Hello \/>\s*<\/steps>/);
+    assert.match(text, /import Language from '\.\/screens\/Language\.tsx'/);
+    assert.match(text, /import Hello, \{ greet \} from '\.\/screens\/Hello\.tsx'/);
   });
 
-  it('when App.tsx is read, then the shortcut hint is a <text class="hint"> per target, after the Greet button', () => {
-    const text = tsx();
-    assert.match(text, /<only macos><text class="hint">\{__\('Quit with Cmd\+Q'\)\}<\/text><\/only>/);
-    assert.match(text, /<only linux><text class="hint">\{__\('Quit with Ctrl\+Q'\)\}<\/text><\/only>/);
-    assert.ok(text.indexOf('</button>') < text.indexOf('Quit with Cmd+Q'));
+  it('when screens/Language.tsx is read, then it is the 420x180 dialog: prompt, dropdown, download bar, OK (primary, waits for the download) and Cancel (cancel)', () => {
+    const text = read('screens/Language.tsx');
+    assert.match(text, /<step id="language" width=\{420\} height=\{180\}>/);
+    assert.match(text, /<text class="language-prompt">\{__\('Please choose your language'\)\}<\/text>\s*<select language \/>\s*<progress source="language-download" \/>/);
+    assert.match(text, /<button primary waitsForDownload onClick=\{confirm\}>\{__\('OK'\)\}<\/button>\s*<button cancel onClick=\{quit\}>\{__\('Cancel'\)\}<\/button>/);
+    assert.ok(text.indexOf('<progress') < text.indexOf('class="language-footer"'), 'the buttons row is last');
   });
 
-  it('when App.css is read, then it sizes the progress bar and the hint and widens the message from 480 px', () => {
-    const text = css();
-    assert.match(text, /progress\s*\{\s*width: 160px;\s*\}/);
-    assert.match(text, /\.hint\s*\{\s*font-size: 12px;\s*\}/);
-    assert.match(text, /@media \(min-width: 480px\)\s*\{\s*\.message\s*\{\s*font-size: 18px;\s*\}\s*\}/);
+  it('when screens/Hello.tsx is read, then it is the 600x440 screen: message, hints, divider, footer with Back and Greet (primary) together and Close (cancel)', () => {
+    const text = read('screens/Hello.tsx');
+    assert.match(text, /<step id="greeting" width=\{600\} height=\{440\}>/);
+    assert.match(text, /<text class="hello-message">\{message\}<\/text>/);
+    assert.match(text, /<view class="hello-divider" \/>\s*<view class="hello-footer">\s*<view class="hello-nav">\s*<button onClick=\{back\}>\{__\('Back'\)\}<\/button>\s*<button primary onClick=\{greet\}>\{__\('Greet'\)\}<\/button>\s*<\/view>\s*<button cancel onClick=\{quit\}>\{__\('Close'\)\}<\/button>/);
+    assert.match(text, /<only macos><text class="hello-hint">\{__\('Quit with Cmd\+Q'\)\}<\/text><\/only>/);
+    assert.match(text, /<only linux><text class="hello-hint">\{__\('Quit with Ctrl\+Q'\)\}<\/text><\/only>/);
+    assert.ok(text.indexOf('hello-message') < text.indexOf('Quit with Cmd+Q') && text.indexOf('Quit with Cmd+Q') < text.indexOf('hello-divider'));
   });
 
-  it('when the window rule is read, then the height has room for the hint (at least 180 px)', () => {
-    const height = Number(/window\s*\{[^}]*height: (\d+)px/.exec(css())?.[1]);
-    assert.ok(height >= 180, `window height ${height}`);
+  it('when App.css is read, then buttons are 85x24 push buttons, the window falls back to the dialog size and the message widens from 480 px', () => {
+    const css = read('App.css');
+    assert.equal(rule(css, 'button'), 'width: 85px; height: 24px;');
+    assert.equal(rule(css, 'window'), 'width: 420px; height: 180px;');
+    assert.match(css, /@media \(min-width: 480px\)\s*\{\s*\.hello-message\s*\{\s*font-size: 18px;\s*\}\s*\}/);
+  });
+
+  it('when Language.css is read, then the numbers of the dialog are there: OK and Cancel 12 px apart and 7 px from the right and bottom edges, a 255x22 dropdown and a 12 px high full-width bar', () => {
+    const css = read('screens/Language.css');
+    assert.equal(rule(css, '.language-footer'), 'flex-direction: row; justify-content: end; gap: 12px; padding: 7px;');
+    assert.equal(rule(css, '.language-content'), 'flex: 1; padding: 10px 12px 0px 12px; gap: 8px;');
+    assert.equal(rule(css, 'select'), 'width: 255px; height: 22px;');
+    assert.equal(rule(css, 'progress'), 'height: 12px;');
+  });
+
+  it('when Hello.css is read, then the numbers of the screen are there: a 1 px translucent divider, 25 px above the buttons, 14 px from the right and bottom, Back and Greet 2 px apart and Close 16 px away', () => {
+    const css = read('screens/Hello.css');
+    assert.equal(rule(css, '.hello-divider'), 'height: 1px; background: #80808066;');
+    assert.equal(rule(css, '.hello-footer'), 'flex-direction: row; justify-content: end; gap: 16px; padding: 25px 14px 14px 14px;');
+    assert.equal(rule(css, '.hello-nav'), 'flex-direction: row; gap: 2px;');
+    assert.match(rule(css, '.hello-content'), /^flex: 1;/);
+  });
+
+  it('when the two screen stylesheets are read, then they share no class name (CSS is global)', () => {
+    const classes = (file: string) => [...read(file).matchAll(/\.([a-z][\w-]*)/g)].map((m) => m[1]);
+    const shared = classes('screens/Language.css').filter((name) => classes('screens/Hello.css').includes(name));
+    assert.deepEqual(shared, []);
   });
 });

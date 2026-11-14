@@ -30,31 +30,38 @@ mkdir -p "$SHOTS_DIR"
 export GDK_BACKEND=x11
 export LC_ALL=C.UTF-8
 
-# Where the Greet button is, from the layout in App.css (window: padding 20px; gap 12px):
+# The native sample is one window: where its Greet button is, from the layout of native/linux/main.cpp (padding 20px; gap 12px):
 #
 #   +----------------------------+  y = 0
 #   | padding 20                 |
-#   |   [ language dropdown ]    |  forge only: its height + gap 12 is BUTTON_Y_OFFSET (34 + 12 = 46)
-#   |   (progress bar)           |  forge only: hidden, so it takes no space and no gap, until a pack downloads
 #   |   Press the button         |  label, 15px font: LABEL_HEIGHT 20
 #   |   gap 12                   |
 #   |   [      Greet      ]      |  button, width 120: BUTTON_WIDTH, BUTTON_HEIGHT 34
-#   |   gap 12                   |
-#   |   Quit with Ctrl+Q         |  forge only: the hint, 12px font; below the button, so it moves nothing above it
 #   +----------------------------+
 #
 #   click_x = padding + half the button width            = 20 + 120 / 2 = 80
-#   click_y = padding + label + gap + half the button height (+ the dropdown on the forge version)
-#           = 20 + 20 + 12 + 34 / 2 (+ 46)               = 69 (115 on the forge version)
+#   click_y = padding + label + gap + half the button height (+ BUTTON_Y_OFFSET, 0 for the native sample)
+#           = 20 + 20 + 12 + 34 / 2                      = 69
 PADDING=20
 GAP=12
 LABEL_HEIGHT=20
 BUTTON_WIDTH=120
 BUTTON_HEIGHT=34
-if [ "$label" = forge ]; then default_offset=46; else default_offset=0; fi
+default_offset=0
 BUTTON_Y_OFFSET="${BUTTON_Y_OFFSET:-$default_offset}"
 click_x=$(( PADDING + BUTTON_WIDTH / 2 ))
 click_y=$(( PADDING + LABEL_HEIGHT + GAP + BUTTON_HEIGHT / 2 + BUTTON_Y_OFFSET ))
+
+# The forge version has two screens (screens/Language.css and screens/Hello.css). The buttons sit at the bottom right,
+# so they are found from the window size: a GTK button is at least 85x24 (the theme may make it taller), so the
+# clicks aim at the middle of a 24 px high button, 18 px above the bottom edge of the window.
+#   first screen  (420 wide): OK is left of Cancel: Cancel 7 px from the right edge, a 12 px gap, buttons 85 wide
+#                 click_ok_x    = WIDTH - 7 - 85 - 12 - 85 / 2
+#   second screen (600 wide): Back and Greet 2 px apart, 16 px left of Close, 14 px from the right edge
+#                 click_greet_x = WIDTH - 14 - 85 - 16 - 85 / 2
+FIRST_WIDTH=420
+SECOND_WIDTH=600
+BOTTOM_CLICK=18
 
 app=""
 stop_app() {
@@ -81,35 +88,68 @@ pixel_difference() { compare -metric AE "$1" "$2" null: 2>&1 || true; }
 
 start_app() { "$binary" >/dev/null 2>&1 & app=$!; }
 
-# --- English: window, geometry, click ------------------------------------------------------------
+# --- English: window, geometry, click -----------------------------------------------------------
 start_app
 window="$(wait_for_window '^Hello, forge$')"
 sleep 1
 
 eval "$(xdotool getwindowgeometry --shell "$window")"
 echo "$label window $window: ${WIDTH}x${HEIGHT}"
-[ "$WIDTH" -ge 320 ] || fail "width $WIDTH < 320"
-if [ "$label" = forge ]; then min_height=170; else min_height=120; fi
-[ "$HEIGHT" -ge "$min_height" ] || fail "height $HEIGHT < $min_height"
-
 before="$SHOTS_DIR/$label-before.png"
 after="$SHOTS_DIR/$label-after.png"
 import -window "$window" "$before"
 
+# Moves the pointer into the window, clicks, waits, and takes the "after" picture.
 click() { xdotool mousemove --window "$window" "$1" "$2" click 1; sleep 1; import -window "$window" "$after"; }
-click "$click_x" "$click_y"
-changed="$(pixel_difference "$before" "$after")"
-if [ "$changed" = 0 ]; then
-  # The computed spot missed (a title bar or a different font size moves everything): scan down the button column
-  # so the run says where the button really is, and report it; the computed spot above stays the documented one.
-  for y in $(seq 20 8 $(( HEIGHT - 8 ))); do
-    click "$click_x" "$y"
-    changed="$(pixel_difference "$before" "$after")"
-    if [ "$changed" != 0 ]; then echo "$label: the click at y=$click_y missed, y=$y worked"; break; fi
-  done
+
+if [ "$label" = forge ]; then
+  # The first screen is the 420 px wide language dialog.
+  [ "$WIDTH" -ge "$FIRST_WIDTH" ] && [ "$WIDTH" -le $(( FIRST_WIDTH + 40 )) ] || fail "first screen width $WIDTH is not about $FIRST_WIDTH"
+  if [ "$label" = forge ]; then min_height=180; else min_height=120; fi
+  [ "$HEIGHT" -ge "$min_height" ] || fail "height $HEIGHT < $min_height"
+  first_height="$HEIGHT"
+  click_ok_x=$(( WIDTH - 7 - 85 - 12 - 85 / 2 ))
+  click "$click_ok_x" $(( HEIGHT - BOTTOM_CLICK ))
+  eval "$(xdotool getwindowgeometry --shell "$window")"
+  echo "forge: after OK the window is ${WIDTH}x${HEIGHT} (it was $FIRST_WIDTH wide)"
+  [ "$WIDTH" -ge 600 ] || fail "after OK the window is ${WIDTH} wide, expected the 600 px second screen"
+  [ "$HEIGHT" -gt "$first_height" ] || fail "after OK the window is not taller than the first screen ($HEIGHT <= $first_height)"
+  cp "$after" "$SHOTS_DIR/forge-screen2.png"
+  # Greet on the second screen: the message changes.
+  screen2="$SHOTS_DIR/forge-screen2.png"
+  click_greet_x=$(( WIDTH - 14 - 85 - 16 - 85 / 2 ))
+  click "$click_greet_x" $(( HEIGHT - BOTTOM_CLICK - 2 ))
+  changed="$(pixel_difference "$screen2" "$after")"
+  echo "forge: $changed pixels changed after the click on Greet at ($click_greet_x, $(( HEIGHT - BOTTOM_CLICK - 2 )))"
+  [ "$changed" -gt 0 ] || fail "the message did not change after clicking Greet (0 pixels differ)"
+  # Back (Escape is the cancel key and Return the default one; the display has no window manager, so key presses are
+  # best effort: they are tried and reported, but only the clicks above can fail the run).
+  xdotool key --window "$window" Escape >/dev/null 2>&1 || true
+  sleep 1
+  eval "$(xdotool getwindowgeometry --shell "$window")"
+  echo "forge: after the Escape key the window is ${WIDTH}x${HEIGHT} (best effort: ${FIRST_WIDTH} wide means Escape went back)"
+  xdotool key --window "$window" Return >/dev/null 2>&1 || true
+  sleep 1
+  eval "$(xdotool getwindowgeometry --shell "$window")"
+  echo "forge: after the Return key the window is ${WIDTH}x${HEIGHT} (best effort: ${SECOND_WIDTH} wide means Return pressed the default button)"
+else
+  [ "$WIDTH" -ge 320 ] || fail "width $WIDTH < 320"
+  if [ "$label" = forge ]; then min_height=180; else min_height=120; fi
+  [ "$HEIGHT" -ge "$min_height" ] || fail "height $HEIGHT < $min_height"
+  click "$click_x" "$click_y"
+  changed="$(pixel_difference "$before" "$after")"
+  if [ "$changed" = 0 ]; then
+    # The computed spot missed (a title bar or a different font size moves everything): scan down the button column
+    # so the run says where the button really is, and report it; the computed spot above stays the documented one.
+    for y in $(seq 20 8 $(( HEIGHT - 8 ))); do
+      click "$click_x" "$y"
+      changed="$(pixel_difference "$before" "$after")"
+      if [ "$changed" != 0 ]; then echo "$label: the click at y=$click_y missed, y=$y worked"; break; fi
+    done
+  fi
+  echo "$label: $changed pixels changed after the click at ($click_x, $click_y)"
+  [ "$changed" -gt 0 ] || fail "the label did not change after clicking Greet (0 pixels differ)"
 fi
-echo "$label: $changed pixels changed after the click at ($click_x, $click_y)"
-[ "$changed" -gt 0 ] || fail "the label did not change after clicking Greet (0 pixels differ)"
 stop_app
 
 # --- Portuguese (forge build with a language pack cache) -------------------------------------------
@@ -121,6 +161,14 @@ if [ "$label" = forge ] && [ -n "$pack_cache" ]; then
   sleep 1
   import -window "$window" "$SHOTS_DIR/pt-BR.png"
   echo "forge: translated title 'Olá, forge' found"
+  # OK (Portuguese: OK) leads to the second screen, translated too.
+  eval "$(xdotool getwindowgeometry --shell "$window")"
+  xdotool mousemove --window "$window" $(( WIDTH - 7 - 85 - 12 - 85 / 2 )) $(( HEIGHT - BOTTOM_CLICK )) click 1
+  sleep 1
+  import -window "$window" "$SHOTS_DIR/pt-BR-screen2.png"
+  eval "$(xdotool getwindowgeometry --shell "$window")"
+  echo "forge: the pt-BR window is ${WIDTH}x${HEIGHT} on the second screen"
+  [ "$WIDTH" -ge 600 ] || fail "the pt-BR window did not reach the second screen (${WIDTH} wide)"
   stop_app
 fi
 

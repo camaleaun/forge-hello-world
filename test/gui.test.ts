@@ -43,7 +43,7 @@ describe('given the versioned window check script', () => {
     it('then it checks the geometry, the pixel change and the pt-BR title', () => {
       assert.match(text(), /xdotool getwindowgeometry --shell/);
       assert.match(text(), /-ge 320/);
-      assert.match(text(), /if \[ "\$label" = forge \]; then min_height=170; else min_height=120; fi/);
+      assert.match(text(), /if \[ "\$label" = forge \]; then min_height=180; else min_height=120; fi/);
       assert.match(text(), /"\$HEIGHT" -ge "\$min_height"/);
       assert.match(text(), /compare -metric AE/);
       assert.match(text(), /FORGE_LANG_PREFERENCE=pt-BR/);
@@ -56,6 +56,16 @@ describe('given the versioned window check script', () => {
       assert.match(text(), /FORGE_I18N_TIMEOUT_MS/);
       assert.match(text(), /downloading\.png/);
       assert.match(text(), /pt-BR\.png/);
+    });
+
+    it('then the forge version checks both screens: 420 wide, OK is clicked, the window grows to 600 wide, Greet changes the second screen, and pt-BR is looked at on both', () => {
+      assert.match(text(), /first screen.*420/s);
+      assert.match(text(), /click_ok_x=\$\(\(/);
+      assert.match(text(), /click_greet_x=\$\(\(/);
+      assert.match(text(), /"\$WIDTH" -ge 600/);
+      assert.match(text(), /forge-screen2\.png/);
+      assert.match(text(), /pt-BR-screen2\.png/);
+      assert.match(text(), /xdotool key .*Return/);
     });
 
     it('then it forces X11, writes into SHOTS_DIR and cleans the child up with a trap', () => {
