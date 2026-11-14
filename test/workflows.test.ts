@@ -19,52 +19,106 @@ describe('given the repository workflows', () => {
     assert.equal(result.status, 0);
   });
 
-  it('when release.yml packages and uploads, then CPack stages outside dist and only the release files are uploaded', () => {
-    const text = readFileSync('.github/workflows/release.yml', 'utf8');
-    // CPack's DragNDrop staging dir contains a symlink to /Applications; uploading dist/* would follow it.
-    assert.ok(!/cpack[^\n]*-B dist/.test(text), 'cpack must not use dist as its build directory');
-    assert.ok(!/path: dist\/\*\s*$/m.test(text), 'upload only dist/*.dmg and dist/*.zip');
+  const release = () => readFileSync('.github/workflows/release.yml', 'utf8');
+  // The text of one top-level job (from "  name:" to the next job).
+  const job = (name: string) => {
+    const match = release().match(new RegExp(`^  ${name}:\\n([\\s\\S]*?)(?=^  [a-z-]+:\\n|(?![\\s\\S]))`, 'm'));
+    assert.ok(match, `job ${name} is missing`);
+    return match[0];
+  };
+
+  it('when release.yml builds, then it uses the reusable forge-action pinned to v1.2.0 (not the moving v1)', () => {
+    const text = release();
+    assert.match(text, /uses: camaleaun\/forge-action@v1\.2\.0\b/);
+    assert.match(text, /uses: camaleaun\/forge-action\/publish@v1\.2\.0\b/);
+    assert.ok(!/forge-action(\/publish)?@v1\s*$/m.test(text), 'pin the exact version');
   });
 
-  it('when release.yml builds, then translations are strict and the language packs are uploaded next to the dmg and zip', () => {
-    const text = readFileSync('.github/workflows/release.yml', 'utf8');
-    assert.match(text, /forge\/bin\/forge build --strict-i18n/);
-    assert.match(text, /build\/src\/lang\/\*\.lang/);
-    assert.match(text, /dist\/\*\.lang/);
+  it('when release.yml builds, then the matrix has macOS, Linux x86_64 and Linux arm64 with distinct artifact names', () => {
+    const build = job('build');
+    for (const [os, target, artifact] of [
+      ['macos-latest', 'macos', 'dist-macos'],
+      ['ubuntu-24.04', 'linux', 'dist-linux-x86_64'],
+      ['ubuntu-24.04-arm', 'linux', 'dist-linux-arm64'],
+    ]) {
+      assert.match(build, new RegExp(`os: ${os}\\n\\s+target: ${target}\\n\\s+artifact: ${artifact}\\b`), `${os} ${target} ${artifact}`);
+    }
+    assert.match(build, /runs-on: \$\{\{ matrix\.os \}\}/);
+    assert.match(build, /target: \$\{\{ matrix\.target \}\}/);
+    assert.match(build, /artifact-name: \$\{\{ matrix\.artifact \}\}/);
+    assert.match(build, /fail-fast: false/);
+  });
+
+  it('when release.yml pins forge, then .forge-ref is read once in the check job and passed to every action', () => {
+    const text = release();
+    assert.match(job('check'), /cat \.forge-ref/);
+    assert.equal((text.match(/cat \.forge-ref/g) ?? []).length, 1);
+    assert.ok(!/forge-ref: trunk/.test(text), 'never build from the moving trunk');
+    assert.equal((text.match(/needs\.check\.outputs\.forge-ref/g) ?? []).length, 4, 'build checkout, build action, manifest checkout and publish');
+    assert.match(job('build'), /forge-ref: \$\{\{ needs\.check\.outputs\.forge-ref \}\}/);
+    assert.match(job('publish'), /forge-ref: \$\{\{ needs\.check\.outputs\.forge-ref \}\}/);
+  });
+
+  it('when release.yml builds, then the tests run before the action, with a forge checkout and the GTK packages on Linux', () => {
+    const build = job('build');
+    assert.ok(build.indexOf('npm test') > 0 && build.indexOf('npm test') < build.indexOf('camaleaun/forge-action@v1.2.0'));
+    assert.match(build, /FORGE_HOME: \$\{\{ github\.workspace \}\}\/forge/);
+    assert.match(build, /if: matrix\.target == 'linux'[\s\S]*apt-get install[^\n]*libgtk-4-dev[^\n]*libsoup-3\.0-dev[^\n]*glib-networking/);
   });
 
   it('when release.yml checks the tag, then the tag must equal v + the package.json version exactly (prereleases included)', () => {
-    const text = readFileSync('.github/workflows/release.yml', 'utf8');
-    assert.ok(!text.includes('%%-*'), 'the tag must not be stripped of its prerelease suffix');
-    assert.match(text, /"v\$\{version\}" != "\$GITHUB_REF_NAME"/);
+    const check = job('check');
+    assert.ok(!check.includes('%%-*'), 'the tag must not be stripped of its prerelease suffix');
+    assert.match(check, /"v\$\{version\}" != "\$GITHUB_REF_NAME"/);
+    assert.match(check, /if: startsWith\(github\.ref, 'refs\/tags\/v'\)/);
+    assert.match(job('build'), /needs: check/);
   });
 
   it('when release.yml needs the version, then it asks forge info instead of reading forge.json', () => {
-    const text = readFileSync('.github/workflows/release.yml', 'utf8');
+    const text = release();
     assert.ok(!text.includes('forge.json'), 'forge.json no longer exists');
     assert.ok(text.includes('forge/bin/forge info --field version'));
   });
 
-  it('when release.yml signs, then it goes through macos-sign.sh (ad-hoc by default, Developer ID + notarization when secrets exist)', () => {
-    const text = readFileSync('.github/workflows/release.yml', 'utf8');
-    assert.ok(!text.includes('codesign --force --deep -s -'), 'signing must go through the script');
-    for (const step of [
-      'forge/scripts/macos-sign.sh import-certificate',
-      'forge/scripts/macos-sign.sh sign build/out/hello-forge.app',
-      'forge/scripts/macos-sign.sh notarize build/out/hello-forge.app',
-      'forge/scripts/macos-sign.sh staple build/out/hello-forge.app',
-      'forge/scripts/macos-sign.sh sign "dist/hello-forge-${version}-darwin-arm64.dmg"',
-      'forge/scripts/macos-sign.sh notarize "dist/hello-forge-${version}-darwin-arm64.dmg"',
-      'forge/scripts/macos-sign.sh staple "dist/hello-forge-${version}-darwin-arm64.dmg"',
-    ]) assert.ok(text.includes(step), step);
-    for (const secret of ['MACOS_CERTIFICATE_P12', 'MACOS_CERTIFICATE_PASSWORD', 'MACOS_SIGNING_IDENTITY', 'NOTARY_KEY_P8', 'NOTARY_KEY_ID', 'NOTARY_ISSUER_ID']) {
-      assert.ok(text.includes(`${secret}: \${{ secrets.${secret} }}`), secret);
-    }
+  it('when release.yml signs, then macOS secrets are optional inputs of the action (ad-hoc without them)', () => {
+    const build = job('build');
+    for (const [input, secret] of [
+      ['macos-certificate-p12', 'MACOS_CERTIFICATE_P12'],
+      ['macos-certificate-password', 'MACOS_CERTIFICATE_PASSWORD'],
+      ['macos-signing-identity', 'MACOS_SIGNING_IDENTITY'],
+      ['notary-key-p8', 'NOTARY_KEY_P8'],
+      ['notary-key-id', 'NOTARY_KEY_ID'],
+      ['notary-issuer-id', 'NOTARY_ISSUER_ID'],
+    ]) assert.ok(build.includes(`${input}: \${{ secrets.${secret} }}`), input);
+    assert.ok(!release().includes('codesign'), 'signing goes through the action');
   });
 
-  it('when release.yml builds the DMG, then it goes through macos-dmg.sh (retries when the Finder keeps the volume busy)', () => {
-    const text = readFileSync('.github/workflows/release.yml', 'utf8');
-    assert.ok(text.includes('forge/scripts/macos-dmg.sh build/out/CPackConfig.cmake build/cpack hello-forge'));
-    assert.ok(!/^\s*cpack /m.test(text), 'cpack must not be called directly');
+  it('when release.yml runs as a dry run, then the manifest job still checks the merged files and latest.json', () => {
+    const manifest = job('manifest');
+    assert.match(manifest, /needs: \[check, build\]/);
+    assert.ok(!/^\s+if:/m.test(manifest), 'the manifest must also run without a tag');
+    assert.match(manifest, /pattern: dist-\*/);
+    assert.match(manifest, /forge\/bin\/forge manifest --dir dist --tag/);
+    assert.match(manifest, /sha256sum/, 'the .lang packs of the three builds must be byte-identical');
+    for (const key of ['darwin-arm64', 'linux-x86_64', 'linux-arm64']) assert.ok(manifest.includes(key), key);
+  });
+
+  it('when release.yml publishes, then there is one publish job, only on v* tags, with a checkout and the dist-* artifacts', () => {
+    const text = release();
+    const publish = job('publish');
+    assert.equal((text.match(/forge-action\/publish@/g) ?? []).length, 1);
+    assert.match(publish, /if: startsWith\(github\.ref, 'refs\/tags\/v'\)/);
+    assert.match(publish, /needs: \[check, manifest\]/);
+    assert.match(publish, /contents: write/);
+    assert.ok(publish.indexOf('actions/checkout@v4') < publish.indexOf('forge-action/publish@'), 'gh release create needs a repository');
+    assert.match(publish, /pattern: dist-\*/);
+    assert.ok(!text.includes('gh release create'), 'the publish action creates the release');
+  });
+
+  it('when release.yml uploads, then it leaves packaging and artifact paths to the action', () => {
+    const text = release();
+    assert.ok(!/^\s*cpack /m.test(text), 'cpack runs inside the action');
+    assert.ok(!/path: dist\/\*\s*$/m.test(text));
+    assert.ok(!text.includes('macos-dmg.sh'), 'the DMG is built by the action');
   });
 });

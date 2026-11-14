@@ -9,16 +9,11 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    runs-on: macos-latest
-    # Signing is optional: without these secrets the app is signed ad-hoc and nothing is notarized.
-    env:
-      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
-      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-      MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-      NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
-      NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
-      NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      forge-ref: ${{ steps.ref.outputs.ref }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - name: Read the pinned forge ref
@@ -32,10 +27,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Test
-        run: npm test
-        env:
-          FORGE_HOME: ${{ github.workspace }}/forge
+      - name: Read the package version
+        id: version
+        run: echo "version=$(forge/bin/forge info --field version)" >> "$GITHUB_OUTPUT"
       - name: Check the tag matches the package version
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
@@ -44,69 +38,111 @@ jobs:
             echo "tag ${GITHUB_REF_NAME} does not match package.json version ${version}" >&2
             exit 1
           fi
-      - name: Import the signing certificate (skipped without secrets)
-        run: forge/scripts/macos-sign.sh import-certificate
-      - name: Generate sources
-        run: forge/bin/forge build --strict-i18n --out build/src
-      - name: Build
-        run: |
-          cmake -S build/src -B build/out -DCMAKE_BUILD_TYPE=Release
-          cmake --build build/out
-      - name: Sign, notarize and staple the app (ad-hoc signature without secrets)
-        run: |
-          forge/scripts/macos-sign.sh sign build/out/hello-forge.app
-          forge/scripts/macos-sign.sh notarize build/out/hello-forge.app
-          forge/scripts/macos-sign.sh staple build/out/hello-forge.app
-      - name: Package
-        run: |
-          version="$(forge/bin/forge info --field version)"
-          mkdir -p dist
-          forge/scripts/macos-dmg.sh build/out/CPackConfig.cmake build/cpack hello-forge
-          mv build/cpack/hello-forge-*.dmg "dist/hello-forge-${version}-darwin-arm64.dmg"
-          forge/scripts/macos-sign.sh sign "dist/hello-forge-${version}-darwin-arm64.dmg"
-          forge/scripts/macos-sign.sh notarize "dist/hello-forge-${version}-darwin-arm64.dmg"
-          forge/scripts/macos-sign.sh staple "dist/hello-forge-${version}-darwin-arm64.dmg"
-          ditto -c -k --keepParent build/out/hello-forge.app "dist/hello-forge-${version}-darwin-arm64.zip"
-          # Language packs ship next to the app; the app downloads the one it needs from this release.
-          cp build/src/lang/*.lang dist/
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: |
-            dist/*.dmg
-            dist/*.zip
-            dist/*.lang
 
-  publish:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+  build:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: macos
+            artifact: dist-macos
+          - os: ubuntu-24.04
+            target: linux
+            artifact: dist-linux-x86_64
+          - os: ubuntu-24.04-arm
+            target: linux
+            artifact: dist-linux-arm64
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Read the pinned forge ref
-        id: ref
-        run: echo "ref=$(cat .forge-ref)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           repository: camaleaun/forge
-          ref: ${{ steps.ref.outputs.ref }}
+          ref: ${{ needs.check.outputs.forge-ref }}
+          path: forge
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install the packages the tests build with (Linux)
+        if: matrix.target == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake g++ pkg-config libgtk-4-dev libsoup-3.0-dev glib-networking
+      - name: Test
+        run: npm test
+        env:
+          FORGE_HOME: ${{ github.workspace }}/forge
+      # Build, sign (optional), package and upload the dist artifact. Without signing inputs the app is signed ad-hoc.
+      - uses: camaleaun/forge-action@v1.2.0
+        with:
+          target: ${{ matrix.target }}
+          artifact-name: ${{ matrix.artifact }}
+          forge-ref: ${{ needs.check.outputs.forge-ref }}
+          macos-certificate-p12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          macos-certificate-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          macos-signing-identity: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          notary-key-p8: ${{ secrets.NOTARY_KEY_P8 }}
+          notary-key-id: ${{ secrets.NOTARY_KEY_ID }}
+          notary-issuer-id: ${{ secrets.NOTARY_ISSUER_ID }}
+
+  # Runs on dry runs too, so a broken manifest or a language pack that differs between builds shows up before a tag.
+  manifest:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: camaleaun/forge
+          ref: ${{ needs.check.outputs.forge-ref }}
           path: forge
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - uses: actions/download-artifact@v4
         with:
-          name: dist
-          path: dist
-      - name: Write latest.json
-        run: forge/bin/forge manifest --dir dist --tag "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > latest.json
-      - name: Publish the release
-        env:
-          GH_TOKEN: ${{ github.token }}
+          pattern: dist-*
+          path: dist-parts
+      - name: Merge the artifacts and compare the language packs
         run: |
-          flags=""
-          case "$GITHUB_REF_NAME" in *-*) flags="--prerelease" ;; esac
-          # shellcheck disable=SC2086
-          gh release create "$GITHUB_REF_NAME" dist/* latest.json --generate-notes $flags
+          mkdir dist
+          for pack in dist-parts/*/*.lang; do
+            name="$(basename "$pack")"
+            if [ -e "dist/$name" ] && [ "$(sha256sum < "dist/$name")" != "$(sha256sum < "$pack")" ]; then
+              echo "$name differs between builds" >&2
+              exit 1
+            fi
+            cp "$pack" "dist/$name"
+          done
+          for file in dist-parts/*/*; do
+            case "$file" in *.lang) ;; *) cp "$file" dist/ ;; esac
+          done
+          ls -l dist
+      - name: Write and check latest.json
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          forge/bin/forge manifest --dir dist --tag "v${VERSION}" --repo "$GITHUB_REPOSITORY" > latest.json
+          for platform in darwin-arm64 linux-x86_64 linux-arm64; do
+            grep -q "\"$platform\"" latest.json || { echo "latest.json has no $platform" >&2; exit 1; }
+          done
+          cat latest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: manifest
+          path: latest.json
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [check, manifest]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # The release command needs a repository to run in.
+      - uses: actions/checkout@v4
+      - uses: camaleaun/forge-action/publish@v1.2.0
+        with:
+          forge-ref: ${{ needs.check.outputs.forge-ref }}
+          pattern: dist-*

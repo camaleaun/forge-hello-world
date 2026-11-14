@@ -8,8 +8,13 @@ import { spawnSync } from 'node:child_process';
 
 const project = new URL('../', import.meta.url).pathname;
 const forgeHome = process.env.FORGE_HOME ?? new URL('../../forge', import.meta.url).pathname;
-const canBuild = process.platform === 'darwin' && spawnSync('cmake', ['--version']).status === 0;
-const MAX_BINARY_BYTES = 300 * 1024;
+const isLinux = process.platform === 'linux';
+const hasCmake = spawnSync('cmake', ['--version']).status === 0;
+const hasGtk = isLinux && spawnSync('pkg-config', ['--exists', 'gtk4', 'libsoup-3.0']).status === 0;
+const canBuild = hasCmake && (process.platform === 'darwin' || hasGtk);
+const target = isLinux ? 'linux' : 'macos';
+// The Linux binary links GTK 4 and libsoup dynamically; the macOS one links AppKit.
+const MAX_BINARY_BYTES = (isLinux ? 600 : 300) * 1024;
 const version: string = JSON.parse(readFileSync(join(project, 'package.json'), 'utf8')).version;
 let work = '';
 let binary = '';
@@ -31,17 +36,17 @@ function runIn(language: string, ...args: string[]) {
   return spawnSync(binary, args, { encoding: 'utf8', env: { ...process.env, FORGE_LANG: language, FORGE_I18N_CACHE_DIR: cache } });
 }
 
-describe('given the hello-world sources and a forge checkout', { skip: !canBuild && 'needs macOS and cmake' }, () => {
+describe('given the hello-world sources and a forge checkout', { skip: !canBuild && 'needs cmake and either macOS or Linux with GTK 4 and libsoup 3 (libgtk-4-dev libsoup-3.0-dev)' }, () => {
   before(() => {
     assert.ok(existsSync(join(forgeHome, 'bin/forge')), `forge not found at ${forgeHome} (set FORGE_HOME)`);
     work = mkdtempSync(join(tmpdir(), 'forge-hello-'));
-    const generated = spawnSync(join(forgeHome, 'bin/forge'), ['build', '--project', project, '--out', join(work, 'src')], { encoding: 'utf8' });
+    const generated = spawnSync(join(forgeHome, 'bin/forge'), ['build', '--target', target, '--project', project, '--out', join(work, 'src')], { encoding: 'utf8' });
     assert.equal(generated.status, 0, generated.stderr);
     const configure = spawnSync('cmake', ['-S', join(work, 'src'), '-B', join(work, 'build'), '-G', 'Unix Makefiles'], { encoding: 'utf8' });
     assert.equal(configure.status, 0, configure.stdout + configure.stderr);
     const build = spawnSync('cmake', ['--build', join(work, 'build')], { encoding: 'utf8' });
     assert.equal(build.status, 0, build.stdout + build.stderr);
-    binary = join(work, 'build/hello-forge.app/Contents/MacOS/hello-forge');
+    binary = isLinux ? join(work, 'build/hello-forge') : join(work, 'build/hello-forge.app/Contents/MacOS/hello-forge');
   });
   after(() => rmSync(work, { recursive: true, force: true }));
 
