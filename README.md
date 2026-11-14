@@ -35,7 +35,7 @@ open build/out/hello-forge.app                       # the window
 
 On Linux add `--target linux` to `forge build` and run `build/out/hello-forge`.
 
-The macOS binary is about 131 KB (130,856 bytes in CI) and the Linux one 96,872 bytes on x86_64 and 92,544 bytes on arm64 (CI), all with the language support. 0.3.0 adds the language-download progress bar, a per-target shortcut hint and an `@media` rule, which is why they are larger than in 0.2. Add `-DFORGE_UNIVERSAL=ON` to the configure step for an arm64 + x86_64 macOS build.
+The macOS binary is about 131 KB (131,224 bytes in CI) and the Linux one 96,968 bytes on x86_64 and 92,608 bytes on arm64 (CI), all with the language support. 0.4.0 turns the app into two screens (a language dialog, then the greeting) with default and cancel buttons, which cost only 368 bytes on macOS, 96 on Linux x86_64 and 64 on arm64 over 0.3.0 (the generated code has no navigation unless the app uses it). Add `-DFORGE_UNIVERSAL=ON` to the configure step for an arm64 + x86_64 macOS build.
 `.forge-ref` pins the forge commit that CI and releases use.
 
 ## Install on Linux

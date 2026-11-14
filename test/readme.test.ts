@@ -48,7 +48,7 @@ describe('given the comparison tables in the native READMEs', () => {
 
   it('when the binary sizes are written, then they are the ones measured in CI"', () => {
     const linux = read('native/linux/README.md');
-    assert.match(linux, /96,872 bytes/);
+    assert.match(linux, /96,968 bytes/);
     assert.match(linux, /14,544 bytes/);
     assert.match(linux, /10,224 bytes/);
     assert.match(linux, /88,440 bytes/);
@@ -56,7 +56,7 @@ describe('given the comparison tables in the native READMEs', () => {
     assert.match(linux, /max-page-size=4096/);
     assert.ok(!/see CI/.test(linux), 'real numbers, not a pointer');
     const mac = read('native/macos/README.md');
-    assert.match(mac, /130,856 bytes/);
+    assert.match(mac, /131,224 bytes/);
     assert.match(mac, /100,688 bytes/);
     assert.ok(!/73,448|100,880/.test(mac), 'stale macOS sizes');
   });
@@ -96,9 +96,9 @@ describe('given the repository README', () => {
     const text = readme();
     assert.ok(!/73 KB/.test(text), 'stale size');
     assert.match(text, /131 KB/);
-    assert.match(text, /130,856 bytes/);
-    assert.match(text, /96,872 bytes/);
-    assert.match(text, /92,544 bytes/);
+    assert.match(text, /131,224 bytes/);
+    assert.match(text, /96,968 bytes/);
+    assert.match(text, /92,608 bytes/);
   });
 
   it('when the native versions are mentioned, then both link to their folders', () => {
