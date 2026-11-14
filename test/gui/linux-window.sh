@@ -162,7 +162,7 @@ stop_app
 
 # --- Portuguese (forge build with a language pack cache) -------------------------------------------
 if [ "$label" = forge ] && [ -n "$pack_cache" ]; then
-  FORGE_LANG_PREFERENCE=pt-BR FORGE_I18N_CACHE_DIR="$pack_cache" "$binary" >/dev/null 2>&1 &
+  FORGE_LOCALE_PREFERENCE=pt-BR FORGE_I18N_CACHE_DIR="$pack_cache" "$binary" >/dev/null 2>&1 &
   app=$!
   window="$(wait_for_window '^Olá, forge$')"
   [ "$(xdotool getwindowname "$window")" = 'Olá, forge' ] || fail "the window is not titled 'Olá, forge'"
@@ -189,7 +189,7 @@ if [ "$label" = forge ] && [ -n "$pack_cache" ]; then
   server=$!
   for _ in $(seq 1 50); do [ -s "$port_file" ] && break; sleep 0.1; done
   [ -s "$port_file" ] || { kill "$server" 2>/dev/null || true; fail "the slow pack server did not start"; }
-  FORGE_I18N_TIMEOUT_MS=60000 FORGE_LANG_PREFERENCE=pt-BR FORGE_I18N_CACHE_DIR="$empty_cache" FORGE_I18N_BASE_URL="http://127.0.0.1:$(cat "$port_file")/" "$binary" >/dev/null 2>&1 &
+  FORGE_I18N_TIMEOUT_MS=60000 FORGE_LOCALE_PREFERENCE=pt-BR FORGE_I18N_CACHE_DIR="$empty_cache" FORGE_I18N_BASE_URL="http://127.0.0.1:$(cat "$port_file")/" "$binary" >/dev/null 2>&1 &
   app=$!
   window="$(wait_for_window '^Hello, forge$')"
   sleep 4

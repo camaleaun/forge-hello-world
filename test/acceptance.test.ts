@@ -19,9 +19,9 @@ const version: string = JSON.parse(readFileSync(join(project, 'package.json'), '
 let work = '';
 let binary = '';
 
-// FORGE_LANG_PREFERENCE beats the language the app saved on this machine (the dropdown choice), so the tests do not depend on it.
+// FORGE_LOCALE_PREFERENCE beats the language the app saved on this machine (the dropdown choice), so the tests do not depend on it.
 function run(...args: string[]) {
-  return spawnSync(binary, args, { encoding: 'utf8', env: { ...process.env, LANG: 'C', LC_ALL: 'C', FORGE_LANG: '', FORGE_LANG_PREFERENCE: 'en' } });
+  return spawnSync(binary, args, { encoding: 'utf8', env: { ...process.env, LANG: 'C', LC_ALL: 'C', FORGE_LOCALE: '', FORGE_LOCALE_PREFERENCE: 'en' } });
 }
 
 // The CLI reads language packs from the cache only; put the generated pack there as the app would after a download.
@@ -34,7 +34,7 @@ function runIn(language: string, ...args: string[]) {
     const sha = createHash('sha256').update(readFileSync(join(lang, file))).digest('hex').slice(0, 12);
     copyFileSync(join(lang, file), join(cache, `${tag}-${sha}.lang`));
   }
-  return spawnSync(binary, args, { encoding: 'utf8', env: { ...process.env, FORGE_LANG: language, FORGE_I18N_CACHE_DIR: cache } });
+  return spawnSync(binary, args, { encoding: 'utf8', env: { ...process.env, FORGE_LOCALE: language, FORGE_I18N_CACHE_DIR: cache } });
 }
 
 describe('given the hello-world sources and a forge checkout', { skip: !canBuild && 'needs cmake and either macOS or Linux with GTK 4 and libsoup 3 (libgtk-4-dev libsoup-3.0-dev)' }, () => {
@@ -59,7 +59,7 @@ describe('given the hello-world sources and a forge checkout', { skip: !canBuild
     assert.equal(run('--version').stdout, `${version}\n`);
   });
 
-  it('when the pack is in the cache and "hello-forge --lang pt-BR --greet" runs, then it prints the translation', () => {
+  it('when the pack is in the cache and "hello-forge --locale pt-BR --greet" runs, then it prints the translation', () => {
     assert.equal(runIn('pt-BR', '--greet').stdout, 'Olá, mundo!\n');
   });
 
@@ -67,7 +67,7 @@ describe('given the hello-world sources and a forge checkout', { skip: !canBuild
     assert.match(runIn('pt-BR', '--help').stdout, /Mostra a saudação/);
   });
 
-  it('when "hello-forge --help" runs in pt-BR, then forge\'s own texts come translated too, and --lang en goes back to English with the pack still cached', () => {
+  it('when "hello-forge --help" runs in pt-BR, then forge\'s own texts come translated too, and --locale en goes back to English with the pack still cached', () => {
     assert.match(runIn('pt-BR', '--help').stdout, /--version {2}Mostra a versão/);
     assert.match(runIn('en', '--help').stdout, /--version {2}Print the version/);
     assert.equal(runIn('en', '--greet').stdout, 'Hello, world!\n');

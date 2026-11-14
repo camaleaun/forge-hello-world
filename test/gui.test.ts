@@ -46,7 +46,7 @@ describe('given the versioned window check script', () => {
       assert.match(text(), /if \[ "\$label" = forge \]; then min_height=180; else min_height=120; fi/);
       assert.match(text(), /"\$HEIGHT" -ge "\$min_height"/);
       assert.match(text(), /compare -metric AE/);
-      assert.match(text(), /FORGE_LANG_PREFERENCE=pt-BR/);
+      assert.match(text(), /FORGE_LOCALE_PREFERENCE=pt-BR/);
       assert.match(text(), /FORGE_I18N_CACHE_DIR/);
       assert.match(text(), /Olá, forge/);
     });

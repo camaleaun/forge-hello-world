@@ -39,7 +39,7 @@ An aarch64 linker aligns segments to 64 KB pages by default and pads the file to
 The macOS twin is compared in [`../macos/README.md`](../macos/README.md).
 
 ## What forge gives you that the manual version does not
-- **A language dropdown** in the window (`<select language />`), remembered between runs, and the command line takes `--lang pt-BR`.
+- **A language dropdown** in the window (`<select language />`), remembered between runs, and the command line takes `--locale pt-BR`.
 - **Downloadable language packs**: the app carries only English; each release publishes `hello-forge-<version>-pt-BR.lang` and the app downloads the pack it needs on first use (libsoup 3) and keeps it in its cache. Translating the manual versions means writing gettext or your own loader.
 - **Packaging and updates**: deb, rpm, tar.gz, snap and AppImage from the same sources, plus the `latest.json` manifest for the updater.
 - **One source for macOS and Linux**, and a live preview in the browser.

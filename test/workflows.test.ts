@@ -74,7 +74,7 @@ describe('given the repository workflows', () => {
     assert.match(job('build'), /needs: check/);
   });
 
-  it('when the packages job is read, then on both Linux runners it installs the .deb on ubuntu:24.04 and the .rpm on fedora and runs the installed app (--greet, --version, --lang pt-BR from the pack)', () => {
+  it('when the packages job is read, then on both Linux runners it installs the .deb on ubuntu:24.04 and the .rpm on fedora and runs the installed app (--greet, --version, --locale pt-BR from the pack)', () => {
     const packages = job('packages');
     assert.match(packages, /needs: \[check, build\]/);
     assert.match(packages, /ubuntu-24\.04-arm/);
@@ -85,7 +85,7 @@ describe('given the repository workflows', () => {
     assert.match(packages, /dnf install[^\n]*\.rpm/);
     assert.match(packages, /hello-forge --version/);
     assert.match(packages, /hello-forge --greet/);
-    assert.match(packages, /--lang pt-BR/);
+    assert.match(packages, /--locale pt-BR/);
     assert.match(packages, /Olá, mundo!/);
   });
 

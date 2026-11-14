@@ -159,7 +159,7 @@ jobs:
             sha="$(sha256sum "$pack" | cut -c1-12)"
             mkdir -p /tmp/cache
             cp "$pack" "/tmp/cache/pt-BR-$sha.lang"
-            test "$(FORGE_I18N_CACHE_DIR=/tmp/cache hello-forge --lang pt-BR --greet)" = "Olá, mundo!"
+            test "$(FORGE_I18N_CACHE_DIR=/tmp/cache hello-forge --locale pt-BR --greet)" = "Olá, mundo!"
           '
       - name: Install the .rpm on Fedora 41 and run the installed app
         run: |
@@ -171,7 +171,7 @@ jobs:
             sha="$(sha256sum "$pack" | cut -c1-12)"
             mkdir -p /tmp/cache
             cp "$pack" "/tmp/cache/pt-BR-$sha.lang"
-            test "$(FORGE_I18N_CACHE_DIR=/tmp/cache hello-forge --lang pt-BR --greet)" = "Olá, mundo!"
+            test "$(FORGE_I18N_CACHE_DIR=/tmp/cache hello-forge --locale pt-BR --greet)" = "Olá, mundo!"
           '
 
   publish:
