@@ -57,11 +57,13 @@ describe('given the two screens of the forge app (a language dialog, then the gr
     assert.ok(text.indexOf('<progress') < text.indexOf('class="language-footer"'), 'the buttons row is last');
   });
 
-  it('when screens/Hello.tsx is read, then it is the 600x440 screen: message, hints, divider, footer with Back and Greet (primary) together and Close (cancel)', () => {
+  it('when screens/Hello.tsx is read, then it is the 600x440 screen: the message with the Greet (primary) button right under it, the hints, a divider, and a footer with only Back and Close (cancel)', () => {
     const text = read('screens/Hello.tsx');
     assert.match(text, /<step id="greeting" width=\{600\} height=\{440\}>/);
     assert.match(text, /<text class="hello-message">\{message\}<\/text>/);
-    assert.match(text, /<view class="hello-divider" \/>\s*<view class="hello-footer">\s*<view class="hello-nav">\s*<button onClick=\{back\}>\{__\('Back'\)\}<\/button>\s*<button primary class="hello-greet" onClick=\{greet\}>\{__\('Greet'\)\}<\/button>\s*<\/view>\s*<button cancel onClick=\{quit\}>\{__\('Close'\)\}<\/button>/);
+    assert.match(text, /<text class="hello-message">\{message\}<\/text>\s*<button primary class="hello-greet" onClick=\{greet\}>\{__\('Greet'\)\}<\/button>/);
+    assert.match(text, /<view class="hello-divider" \/>\s*<view class="hello-footer">\s*<button onClick=\{back\}>\{__\('Back'\)\}<\/button>\s*<button cancel onClick=\{quit\}>\{__\('Close'\)\}<\/button>\s*<\/view>/);
+    assert.ok(text.indexOf('hello-greet') < text.indexOf('hello-divider'), 'Greet is in the body, right under the message');
     assert.match(text, /<only macos><text class="hello-hint">\{__\('Quit with Cmd\+Q'\)\}<\/text><\/only>/);
     assert.match(text, /<only linux><text class="hello-hint">\{__\('Quit with Ctrl\+Q'\)\}<\/text><\/only>/);
     assert.ok(text.indexOf('hello-message') < text.indexOf('Quit with Cmd+Q') && text.indexOf('Quit with Cmd+Q') < text.indexOf('hello-divider'));
@@ -82,11 +84,10 @@ describe('given the two screens of the forge app (a language dialog, then the gr
     assert.equal(rule(css, 'progress'), 'height: 12px;');
   });
 
-  it('when Hello.css is read, then the numbers of the screen are there: a 1 px translucent divider, 25 px above the buttons, 14 px from the right and bottom, Back and Greet 2 px apart and Close 16 px away', () => {
+  it('when Hello.css is read, then the numbers of the screen are there: a 1 px translucent divider, 25 px above the buttons, 14 px from the right and bottom, and Back and Close at the two ends of the footer (space between)', () => {
     const css = read('screens/Hello.css');
     assert.equal(rule(css, '.hello-divider'), 'height: 1px; background: #80808066;');
-    assert.equal(rule(css, '.hello-footer'), 'flex-direction: row; justify-content: end; gap: 16px; padding: 25px 14px 14px 14px;');
-    assert.equal(rule(css, '.hello-nav'), 'flex-direction: row; gap: 2px;');
+    assert.equal(rule(css, '.hello-footer'), 'flex-direction: row; justify-content: space-between; padding: 25px 14px 14px 14px;');
     assert.match(rule(css, '.hello-content'), /^flex: 1;/);
   });
 
@@ -115,7 +116,7 @@ describe('given the macOS look of the footer', () => {
     const language = readFileSync('screens/Language.css', 'utf8');
     const hello = readFileSync('screens/Hello.css', 'utf8');
     assert.match(language, /@only macos\s*\{[\s\S]*?\.language-footer\s*\{[^}]*gap:\s*8px;[^}]*padding:\s*16px 20px 20px 20px;/);
-    assert.match(hello, /@only macos\s*\{[\s\S]*?\.hello-footer\s*\{[^}]*gap:\s*8px;[^}]*padding:\s*21px 20px 22px 20px;[^}]*\}\s*\.hello-nav\s*\{[^}]*gap:\s*8px;/);
+    assert.match(hello, /@only macos\s*\{[\s\S]*?\.hello-footer\s*\{[^}]*padding:\s*21px 20px 22px 20px;/);
     assert.match(language, /\.language-footer\s*\{ flex-direction: row; justify-content: end; gap: 12px; padding: 7px; \}/);
   });
 });

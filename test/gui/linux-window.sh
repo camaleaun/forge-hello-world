@@ -57,8 +57,9 @@ click_y=$(( PADDING + LABEL_HEIGHT + GAP + BUTTON_HEIGHT / 2 + BUTTON_Y_OFFSET )
 # clicks aim at the middle of a 24 px high button, 18 px above the bottom edge of the window.
 #   first screen  (420 wide): OK is left of Cancel: Cancel 7 px from the right edge, a 12 px gap, buttons 85 wide
 #                 click_ok_x    = WIDTH - 7 - 85 - 12 - 85 / 2
-#   second screen (600 wide): Back and Greet 2 px apart, 16 px left of Close, 14 px from the right edge
-#                 click_greet_x = WIDTH - 14 - 85 - 16 - 85 / 2
+#   second screen (600 wide): Greet is in the body right under the message, 16 px from the left edge and 120 px wide;
+#                 the footer has only Back (left) and Close (right)
+#                 click_greet_x = 16 + 120 / 2
 FIRST_WIDTH=420
 SECOND_WIDTH=600
 BOTTOM_CLICK=18
@@ -115,12 +116,19 @@ if [ "$label" = forge ]; then
   [ "$WIDTH" -ge 600 ] || fail "after OK the window is ${WIDTH} wide, expected the 600 px second screen"
   [ "$HEIGHT" -gt "$first_height" ] || fail "after OK the window is not taller than the first screen ($HEIGHT <= $first_height)"
   cp "$after" "$SHOTS_DIR/forge-screen2.png"
-  # Greet on the second screen: the message changes.
+  # Greet on the second screen: the message changes. Greet is in the body right under the message (16 px of padding,
+  # an 18 px message about 24 px high, a 12 px gap), so the middle of the button is about 16 + 24 + 12 + 16 = 68 px
+  # from the top; the theme may change the heights, so a few rows around it are tried.
   screen2="$SHOTS_DIR/forge-screen2.png"
-  click_greet_x=$(( WIDTH - 14 - 85 - 16 - 85 / 2 ))
-  click "$click_greet_x" $(( HEIGHT - BOTTOM_CLICK - 2 ))
-  changed="$(pixel_difference "$screen2" "$after")"
-  echo "forge: $changed pixels changed after the click on Greet at ($click_greet_x, $(( HEIGHT - BOTTOM_CLICK - 2 )))"
+  click_greet_x=$(( 16 + 120 / 2 ))
+  greet_y=0
+  changed=0
+  for y in 68 60 76 52 84; do
+    click "$click_greet_x" "$y"
+    changed="$(pixel_difference "$screen2" "$after")"
+    if [ "$changed" -gt 0 ]; then greet_y="$y"; break; fi
+  done
+  echo "forge: $changed pixels changed after the click on Greet at ($click_greet_x, $greet_y)"
   [ "$changed" -gt 0 ] || fail "the message did not change after clicking Greet (0 pixels differ)"
   # Back (Escape is the cancel key and Return the default one; the display has no window manager, so key presses are
   # best effort: they are tried and reported, but only the clicks above can fail the run).

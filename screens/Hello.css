@@ -3,14 +3,12 @@
 .hello-message { font-size: 15px; }
 .hello-hint    { font-size: 12px; }
 .hello-divider { height: 1px; background: #80808066; }
-.hello-footer  { flex-direction: row; justify-content: end; gap: 16px; padding: 25px 14px 14px 14px; }
-.hello-nav     { flex-direction: row; gap: 2px; }
+.hello-footer  { flex-direction: row; justify-content: space-between; padding: 25px 14px 14px 14px; }
 /* Wider than the 85 px default: a fixed width clips the longer translations ("Cumprimentar") on macOS. */
 .hello-greet   { width: 120px; }
 
-/* macOS: system-style footer (about 20 pt side margins, 21 pt above the buttons, 8 pt between them). */
+/* macOS: system-style footer (about 20 pt side margins, 21 pt above the buttons). */
 @only macos {
   .hello-content { padding: 20px; }
-  .hello-footer  { gap: 8px; padding: 21px 20px 22px 20px; }
-  .hello-nav     { gap: 8px; }
+  .hello-footer  { padding: 21px 20px 22px 20px; }
 }
