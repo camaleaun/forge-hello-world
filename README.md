@@ -7,8 +7,8 @@ The app is called **hello-forge** (`hello` is too generic and may clash with oth
 The smallest [forge](https://github.com/camaleaun/forge) app: a label, a button and a command, written as a tiny web app.
 
 - `package.json`: app name and version.
-- `App.tsx`: the markup (`<window>`, `<text>`, `<button>`) and the behavior (`state`, handlers, CLI commands).
-- `App.css`: the look (flex layout, sizes, colors).
+- `App.tsx`: the markup (`<window>`, `<text>`, `<button>`, `<progress source="language-download" />` and per-target `<only macos>`/`<only linux>` shortcut hints) and the behavior (`state`, handlers, CLI commands).
+- `App.css`: the look (flex layout, sizes, an `@media (min-width: 480px)` rule; no colors, so dark mode works).
 - `icon.svg`: the app icon (forge turns it into `AppIcon.icns`).
 
 ```tsx
@@ -31,7 +31,7 @@ open build/out/hello-forge.app                       # the window
 
 On Linux add `--target linux` to `forge build` and run `build/out/hello-forge`.
 
-The macOS binary is about 114 KB (114,168 bytes in CI) and the Linux x86_64 one 92,776 bytes, both with the language support. Add `-DFORGE_UNIVERSAL=ON` to the configure step for an arm64 + x86_64 macOS build.
+The macOS binary is about 131 KB (130,856 bytes in CI) and the Linux one 96,872 bytes on x86_64 and 92,544 bytes on arm64 (CI), all with the language support. 0.3.0 adds the language-download progress bar, a per-target shortcut hint and an `@media` rule, which is why they are larger than in 0.2. Add `-DFORGE_UNIVERSAL=ON` to the configure step for an arm64 + x86_64 macOS build.
 `.forge-ref` pins the forge commit that CI and releases use.
 
 ## Install on Linux

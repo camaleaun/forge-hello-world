@@ -16,7 +16,7 @@ open native/macos/build/hello-forge.app
 |---|---|---|
 | What you write | `../../App.tsx` (25 lines) + `../../App.css` (10 lines) + `../../languages/pt-BR.lang` (7 lines) | `main.swift` (76 lines) + `build.sh` (31 lines) that makes the `.app` |
 | What gets compiled | about 1,650 lines of generated Objective-C++/C++/CMake (not written by you) | the 76 lines above |
-| Binary size (arm64, CI) | 114,168 bytes (with the language support) | 100,688 bytes (links the system Swift runtime) |
+| Binary size (arm64, CI) | 130,856 bytes (with the language support) | 100,688 bytes (links the system Swift runtime) |
 | Same source also runs | in the browser preview (`forge start`), on Linux, later Windows/web/mobile | macOS only |
 | Languages | a dropdown, the choice is remembered, language packs are downloaded | English only |
 | Full AppKit access | no (window, view, text, button, language dropdown, progress) | yes |
