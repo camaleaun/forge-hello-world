@@ -32,7 +32,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           version="$(node -p "JSON.parse(require('fs').readFileSync('forge.json', 'utf8')).app.version")"
-          if [ "v${version}" != "${GITHUB_REF_NAME%%-*}" ]; then
+          if [ "v${version}" != "$GITHUB_REF_NAME" ]; then
             echo "tag ${GITHUB_REF_NAME} does not match forge.json version ${version}" >&2
             exit 1
           fi

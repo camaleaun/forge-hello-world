@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -9,6 +9,7 @@ const project = new URL('../', import.meta.url).pathname;
 const forgeHome = process.env.FORGE_HOME ?? new URL('../../forge', import.meta.url).pathname;
 const canBuild = process.platform === 'darwin' && spawnSync('cmake', ['--version']).status === 0;
 const MAX_BINARY_BYTES = 300 * 1024;
+const version: string = JSON.parse(readFileSync(join(project, 'forge.json'), 'utf8')).app.version;
 let work = '';
 let binary = '';
 
@@ -35,7 +36,7 @@ describe('given the hello-world sources and a forge checkout', { skip: !canBuild
   });
 
   it('when "hello --version" runs, then it prints the version from forge.json', () => {
-    assert.equal(run('--version').stdout, '0.1.0\n');
+    assert.equal(run('--version').stdout, `${version}\n`);
   });
 
   it('when the binary size is measured, then it is under 300 KB', () => {

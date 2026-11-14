@@ -25,4 +25,10 @@ describe('given the repository workflows', () => {
     assert.ok(!/cpack[^\n]*-B dist/.test(text), 'cpack must not use dist as its build directory');
     assert.ok(!/path: dist\/\*\s*$/m.test(text), 'upload only dist/*.dmg and dist/*.zip');
   });
+
+  it('when release.yml checks the tag, then the tag must equal v + the forge.json version exactly (prereleases included)', () => {
+    const text = readFileSync('.github/workflows/release.yml', 'utf8');
+    assert.ok(!text.includes('%%-*'), 'the tag must not be stripped of its prerelease suffix');
+    assert.match(text, /"v\$\{version\}" != "\$GITHUB_REF_NAME"/);
+  });
 });
