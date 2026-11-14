@@ -53,6 +53,7 @@ describe('given the versioned window check script', () => {
 
     it('then it looks at the progress bar while a language pack downloads (slow local server, FORGE_I18N_BASE_URL) and at the pt-BR hint', () => {
       assert.match(text(), /FORGE_I18N_BASE_URL/);
+      assert.match(text(), /FORGE_I18N_TIMEOUT_MS/);
       assert.match(text(), /downloading\.png/);
       assert.match(text(), /pt-BR\.png/);
     });
