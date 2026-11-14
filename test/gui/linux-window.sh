@@ -4,7 +4,9 @@
 # Usage: linux-window.sh <binary> <label> [pack-cache-dir]
 #   binary          the hello-forge executable to start
 #   label           "forge" (generated from App.tsx) or "native" (hand-written, native/linux); names the screenshots
-#   pack-cache-dir  forge build only: a language pack cache; when given, the app is started again in Portuguese
+#   pack-cache-dir  forge build only: a language pack cache; when given, the app is started again in Portuguese,
+#                   and once more with an empty cache and a slow local server (FORGE_I18N_BASE_URL) so the
+#                   progress bar can be looked at while the pack downloads
 #
 # Environment:
 #   SHOTS_DIR       where the screenshots go (default ./shots)
@@ -33,9 +35,12 @@ export LC_ALL=C.UTF-8
 #   +----------------------------+  y = 0
 #   | padding 20                 |
 #   |   [ language dropdown ]    |  forge only: its height + gap 12 is BUTTON_Y_OFFSET (34 + 12 = 46)
+#   |   (progress bar)           |  forge only: hidden, so it takes no space and no gap, until a pack downloads
 #   |   Press the button         |  label, 15px font: LABEL_HEIGHT 20
 #   |   gap 12                   |
 #   |   [      Greet      ]      |  button, width 120: BUTTON_WIDTH, BUTTON_HEIGHT 34
+#   |   gap 12                   |
+#   |   Quit with Ctrl+Q         |  forge only: the hint, 12px font; below the button, so it moves nothing above it
 #   +----------------------------+
 #
 #   click_x = padding + half the button width            = 20 + 120 / 2 = 80
@@ -84,7 +89,8 @@ sleep 1
 eval "$(xdotool getwindowgeometry --shell "$window")"
 echo "$label window $window: ${WIDTH}x${HEIGHT}"
 [ "$WIDTH" -ge 320 ] || fail "width $WIDTH < 320"
-[ "$HEIGHT" -ge 120 ] || fail "height $HEIGHT < 120"
+if [ "$label" = forge ]; then min_height=170; else min_height=120; fi
+[ "$HEIGHT" -ge "$min_height" ] || fail "height $HEIGHT < $min_height"
 
 before="$SHOTS_DIR/$label-before.png"
 after="$SHOTS_DIR/$label-after.png"
@@ -116,6 +122,34 @@ if [ "$label" = forge ] && [ -n "$pack_cache" ]; then
   import -window "$window" "$SHOTS_DIR/pt-BR.png"
   echo "forge: translated title 'Olá, forge' found"
   stop_app
+fi
+
+# --- Download in progress: the progress bar is visible only while a language pack downloads ---------
+if [ "$label" = forge ] && [ -n "$pack_cache" ]; then
+  pack="$(ls "$pack_cache"/*.lang | head -n 1)"
+  port_file="$(mktemp)"
+  empty_cache="$(mktemp -d)"
+  python3 "$(dirname "$0")/slow-pack-server.py" "$pack" "$port_file" 12 &
+  server=$!
+  for _ in $(seq 1 50); do [ -s "$port_file" ] && break; sleep 0.1; done
+  [ -s "$port_file" ] || { kill "$server" 2>/dev/null || true; fail "the slow pack server did not start"; }
+  FORGE_LANG_PREFERENCE=pt-BR FORGE_I18N_CACHE_DIR="$empty_cache" FORGE_I18N_BASE_URL="http://127.0.0.1:$(cat "$port_file")/" "$binary" >/dev/null 2>&1 &
+  app=$!
+  window="$(wait_for_window '^Hello, forge$')"
+  sleep 4
+  import -window "$window" "$SHOTS_DIR/downloading.png"
+  shown="$(pixel_difference "$before" "$SHOTS_DIR/downloading.png")"
+  echo "forge: $shown pixels differ while the pack downloads (the progress bar is visible)"
+  [ "$shown" -gt 0 ] || { kill "$server" 2>/dev/null || true; fail "the progress bar did not appear while the pack downloaded"; }
+  window="$(wait_for_window '^Olá, forge$')"
+  echo "forge: the downloaded pack was applied (title 'Olá, forge')"
+  sleep 1
+  import -window "$window" "$SHOTS_DIR/downloaded.png"
+  idle="$(pixel_difference "$SHOTS_DIR/pt-BR.png" "$SHOTS_DIR/downloaded.png")"
+  echo "forge: $idle pixels differ between the cached pt-BR window and the downloaded one (0 = the bar is hidden again)"
+  stop_app
+  kill "$server" 2>/dev/null || true
+  wait "$server" 2>/dev/null || true
 fi
 
 # --- Side by side, when both builds have been looked at ---------------------------------------------

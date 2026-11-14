@@ -29,3 +29,31 @@ describe('given the hello window', () => {
     assert.match(swift, /window\.contentMinSize = NSSize\(width: 320, height: 120\)/);
   });
 });
+
+describe('given the UI v2 additions of the forge app', () => {
+  const tsx = () => readFileSync('App.tsx', 'utf8');
+  const css = () => readFileSync('App.css', 'utf8');
+
+  it('when App.tsx is read, then the progress bar sits right below the language dropdown and is bound to the language download', () => {
+    assert.match(tsx(), /<select language \/>\s*<progress source="language-download" \/>/);
+  });
+
+  it('when App.tsx is read, then the shortcut hint is a <text class="hint"> per target, after the Greet button', () => {
+    const text = tsx();
+    assert.match(text, /<only macos><text class="hint">\{__\('Quit with Cmd\+Q'\)\}<\/text><\/only>/);
+    assert.match(text, /<only linux><text class="hint">\{__\('Quit with Ctrl\+Q'\)\}<\/text><\/only>/);
+    assert.ok(text.indexOf('</button>') < text.indexOf('Quit with Cmd+Q'));
+  });
+
+  it('when App.css is read, then it sizes the progress bar and the hint and widens the message from 480 px', () => {
+    const text = css();
+    assert.match(text, /progress\s*\{\s*width: 160px;\s*\}/);
+    assert.match(text, /\.hint\s*\{\s*font-size: 12px;\s*\}/);
+    assert.match(text, /@media \(min-width: 480px\)\s*\{\s*\.message\s*\{\s*font-size: 18px;\s*\}\s*\}/);
+  });
+
+  it('when the window rule is read, then the height has room for the hint (at least 180 px)', () => {
+    const height = Number(/window\s*\{[^}]*height: (\d+)px/.exec(css())?.[1]);
+    assert.ok(height >= 180, `window height ${height}`);
+  });
+});

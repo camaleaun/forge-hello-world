@@ -1,5 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -26,8 +27,8 @@ describe('given the hello-forge sources generated for Linux', () => {
 
   it('when CMakeLists.txt is read, then the target, the package and the file names are hello-forge', () => {
     const cmake = readFileSync(join(out, 'CMakeLists.txt'), 'utf8');
-    assert.match(cmake, /project\(hello-forge VERSION 0\.2\.0 LANGUAGES CXX\)/);
-    assert.match(cmake, /CPACK_PACKAGE_FILE_NAME "hello-forge-0\.2\.0-rc\.2-linux-\$\{FORGE_ARCH\}"/);
+    assert.match(cmake, /project\(hello-forge VERSION 0\.3\.0 LANGUAGES CXX\)/);
+    assert.match(cmake, /CPACK_PACKAGE_FILE_NAME "hello-forge-0\.3\.0-rc\.1-linux-\$\{FORGE_ARCH\}"/);
     assert.ok(cmake.includes(version));
   });
 
@@ -39,5 +40,44 @@ describe('given the hello-forge sources generated for Linux', () => {
 
   it('when the language pack is listed, then it is named after hello-forge', () => {
     assert.deepEqual(readdirSync(join(out, 'lang')), [`hello-forge-${version}-pt-BR.lang`]);
+  });
+});
+
+// UI v2: <only macos>/<only linux> hint, the language-download progress bar and the @media rule.
+describe('given the hello-forge UI built for each target', () => {
+  const generate = (target: string) => {
+    const dir = mkdtempSync(join(tmpdir(), `hello-forge-${target}-`));
+    const result = spawnSync(join(forgeHome, 'bin/forge'), ['build', '--target', target, '--strict-i18n', '--project', project, '--out', dir], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    return dir;
+  };
+  const sourcesOf = (dir: string, files: string[]) => files.map((f) => readFileSync(join(dir, f), 'utf8')).join('\n');
+  let linux = '';
+  let macos = '';
+  before(() => { linux = generate('linux'); macos = generate('macos'); });
+  after(() => { rmSync(linux, { recursive: true, force: true }); rmSync(macos, { recursive: true, force: true }); });
+
+  it('when the Linux sources are read, then they show the Ctrl+Q hint and the language-download progress bar, not the Cmd+Q hint', () => {
+    const text = sourcesOf(linux, ['ui_linux.cpp', 'messages.cpp']);
+    assert.ok(text.includes('Quit with Ctrl+Q'));
+    assert.ok(!text.includes('Quit with Cmd+Q'));
+    assert.match(text, /gtk_progress_bar_new/);
+    assert.match(text, /add_download_bar/);
+  });
+
+  it('when the macOS sources are read, then they show the Cmd+Q hint and the progress bar, not the Ctrl+Q hint', () => {
+    const text = sourcesOf(macos, ['ui_macos.mm', 'messages.cpp']);
+    assert.ok(text.includes('Quit with Cmd+Q'));
+    assert.ok(!text.includes('Quit with Ctrl+Q'));
+    assert.match(text, /NSProgressIndicator/);
+  });
+
+  it('when the pt-BR pack is read for both targets, then the bytes (so the sha256) are identical and it translates both hints', () => {
+    const file = `hello-forge-${version}-pt-BR.lang`;
+    const a = readFileSync(join(linux, 'lang', file));
+    const b = readFileSync(join(macos, 'lang', file));
+    assert.equal(createHash('sha256').update(a).digest('hex'), createHash('sha256').update(b).digest('hex'));
+    assert.match(a.toString('utf8'), /Quit with Cmd\+Q\tSaia com Cmd\+Q/);
+    assert.match(a.toString('utf8'), /Quit with Ctrl\+Q\tSaia com Ctrl\+Q/);
   });
 });

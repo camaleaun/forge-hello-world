@@ -43,11 +43,18 @@ describe('given the versioned window check script', () => {
     it('then it checks the geometry, the pixel change and the pt-BR title', () => {
       assert.match(text(), /xdotool getwindowgeometry --shell/);
       assert.match(text(), /-ge 320/);
-      assert.match(text(), /-ge 120/);
+      assert.match(text(), /if \[ "\$label" = forge \]; then min_height=170; else min_height=120; fi/);
+      assert.match(text(), /"\$HEIGHT" -ge "\$min_height"/);
       assert.match(text(), /compare -metric AE/);
       assert.match(text(), /FORGE_LANG_PREFERENCE=pt-BR/);
       assert.match(text(), /FORGE_I18N_CACHE_DIR/);
       assert.match(text(), /Olá, forge/);
+    });
+
+    it('then it looks at the progress bar while a language pack downloads (slow local server, FORGE_I18N_BASE_URL) and at the pt-BR hint', () => {
+      assert.match(text(), /FORGE_I18N_BASE_URL/);
+      assert.match(text(), /downloading\.png/);
+      assert.match(text(), /pt-BR\.png/);
     });
 
     it('then it forces X11, writes into SHOTS_DIR and cleans the child up with a trap', () => {
