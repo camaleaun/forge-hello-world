@@ -20,7 +20,7 @@ The same app written by hand in Swift + AppKit is in [`native/macos`](native/mac
 With a forge checkout next to this repository (`../forge`, or set `FORGE_HOME`):
 
 ```sh
-../forge/bin/forge start                      # live preview in the browser (add --lan for your phone)
+../forge/bin/forge start                      # live preview in the browser (open the URL it prints on your phone; add --local to keep it on this Mac)
 ../forge/bin/forge build --out build/src      # generate the native sources
 cmake -S build/src -B build/out && cmake --build build/out
 build/out/hello.app/Contents/MacOS/hello --greet   # Hello, world!
