@@ -47,13 +47,15 @@ jobs:
         run: |
           version="$(node -p "JSON.parse(require('fs').readFileSync('forge.json', 'utf8')).app.version")"
           mkdir -p dist
-          cpack --config build/out/CPackConfig.cmake -G DragNDrop -B dist
-          mv dist/hello-*.dmg "dist/hello-${version}-darwin-arm64.dmg"
+          cpack --config build/out/CPackConfig.cmake -G DragNDrop -B build/cpack
+          mv build/cpack/hello-*.dmg "dist/hello-${version}-darwin-arm64.dmg"
           ditto -c -k --keepParent build/out/hello.app "dist/hello-${version}-darwin-arm64.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: dist/*
+          path: |
+            dist/*.dmg
+            dist/*.zip
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
