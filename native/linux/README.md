@@ -23,12 +23,14 @@ sudo apt install g++ pkg-config libgtk-4-dev
 
 | | forge version | hand-written C++ |
 |---|---|---|
-| What you write | `../../App.tsx` (22 lines) + `../../App.css` (4 lines) + `../../languages/pt-BR.lang` (5 lines) | `main.cpp` (88 lines) + `build.sh` (17 lines) |
+| What you write | `../../App.tsx` (25 lines) + `../../App.css` (10 lines) + `../../languages/pt-BR.lang` (7 lines) | `main.cpp` (88 lines) + `build.sh` (17 lines) |
 | What gets compiled | about 1,700 lines of generated C++/CMake (not written by you) | the 88 lines above |
 | Binary size (x86_64, `-Os`, stripped) | 92,776 bytes (CI, with the language support) | 14,544 bytes (CI) |
 | Same source also runs | on macOS, in the browser preview (`forge start`), later Windows/web/mobile | Linux only |
 | Languages | a dropdown, the choice is remembered, language packs are downloaded | English only |
 | Packages | deb, rpm, tar.gz, snap, AppImage, desktop entry, AppStream data, icon | none: you get one binary |
+
+The hand-written version stays at the 0.2 feature set (no language-download progress bar, no shortcut hint, no `@media` rule), so the forge column of this table does more than the native one.
 
 The forge size is for the x86_64 build on `ubuntu-24.04`; the arm64 build is 88,440 bytes (hand-written: 14,544 bytes on x86_64, 10,224 bytes on arm64, as measured in CI).
 
