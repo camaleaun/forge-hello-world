@@ -1,0 +1,32 @@
+# The same hello, written by hand for macOS
+
+`main.swift` is the whole app: Swift + AppKit, no Xcode project, no dependencies. It does what `../../App.tsx` + `App.css` do:
+a 320x120 window titled "Hello, forge", a label ("Press the button") and a "Greet" button that changes the label, a Quit menu (Cmd+Q),
+and the same command line (`--greet`, `--version`, `--help`, exit code 2 for unknown options) in the same binary.
+
+```sh
+native/macos/build.sh              # builds native/macos/build/hello.app (needs macOS and swiftc)
+native/macos/build/hello.app/Contents/MacOS/hello --greet
+open native/macos/build/hello.app
+```
+
+## Side by side
+
+| | forge version | hand-written Swift |
+|---|---|---|
+| What you write | `App.tsx` (21 lines) + `App.css` (3 lines) | `main.swift` (75 lines) + `build.sh` (30 lines, makes the `.app`) |
+| What gets compiled | 278 lines of generated Objective-C++/C++/CMake (not written by you) | the 75 lines above |
+| Binary size | 73,448 bytes | 100,880 bytes (links the system Swift runtime) |
+| Same source also runs | in the browser preview (`forge start`), later Linux/Windows/web/mobile | macOS only |
+| Full AppKit access | no (v1: window, view, text, button) | yes |
+
+## Is a fixed size or a fixed position required? No.
+- **Size:** it is decided by the window's *style mask*. This hello passes `[.titled, .closable, .miniaturizable]` and no `.resizable`,
+  so the window cannot be resized. Add `.resizable` (and set `window.minSize` if you want a limit) and it can. A window created from
+  Xcode's template is resizable by default. forge v1 also creates a fixed-size window because `App.css` gives the `window` a width and a height;
+  resizable windows are a planned forge feature, not a macOS limitation.
+- **Position:** nothing is required either. The window opens where its `contentRect` origin says, which is the bottom-left corner of the screen
+  when you pass `(0, 0)`. That is why the code calls `window.center()`. Real apps usually call `window.setFrameAutosaveName("main")`
+  instead, and AppKit remembers where the user left the window.
+- The **DMG window** (the one with the app icon and the Applications shortcut) is a different thing: it is a Finder window of the disk image,
+  and its fixed size and icon positions come from the setup script that forge generates.

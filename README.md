@@ -11,6 +11,8 @@ const message = state('Press the button');
 function greet() { message.set('Hello, world!'); }
 ```
 
+The same app written by hand in Swift + AppKit is in [`native/macos`](native/macos) so you can compare the code, the size and what forge adds.
+
 ## Try it
 With a forge checkout next to this repository (`../forge`, or set `FORGE_HOME`):
 
