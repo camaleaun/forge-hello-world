@@ -46,10 +46,12 @@ describe('given the comparison tables in the native READMEs', () => {
     assert.match(read('native/linux/README.md'), /\]\(\.\.\/macos\/README\.md\)/);
   });
 
-  it('when the binary sizes are written, then they are the ones measured in CI or say "see CI"', () => {
+  it('when the binary sizes are written, then they are the ones measured in CI"', () => {
     const linux = read('native/linux/README.md');
     assert.match(linux, /92,776 bytes/);
-    assert.match(linux, /see CI/);
+    assert.match(linux, /14,544 bytes/);
+    assert.match(linux, /67,568 bytes/);
+    assert.ok(!/see CI/.test(linux), 'real numbers, not a pointer');
     const mac = read('native/macos/README.md');
     assert.match(mac, /113,256 bytes/);
     assert.match(mac, /100,688 bytes/);

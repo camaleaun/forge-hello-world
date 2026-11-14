@@ -25,12 +25,12 @@ sudo apt install g++ pkg-config libgtk-4-dev
 |---|---|---|
 | What you write | `../../App.tsx` (22 lines) + `../../App.css` (4 lines) + `../../languages/pt-BR.lang` (5 lines) | `main.cpp` (88 lines) + `build.sh` (17 lines) |
 | What gets compiled | about 1,700 lines of generated C++/CMake (not written by you) | the 88 lines above |
-| Binary size (x86_64, `-Os`, stripped) | 92,776 bytes (CI, with the language support) | see CI (the `# native linux hello-forge binary size:` line of the test log) |
+| Binary size (x86_64, `-Os`, stripped) | 92,776 bytes (CI, with the language support) | 14,544 bytes (CI) |
 | Same source also runs | on macOS, in the browser preview (`forge start`), later Windows/web/mobile | Linux only |
 | Languages | a dropdown, the choice is remembered, language packs are downloaded | English only |
 | Packages | deb, rpm, tar.gz, snap, AppImage, desktop entry, AppStream data, icon | none: you get one binary |
 
-The forge size is for the x86_64 build on `ubuntu-24.04`; the arm64 build is 133,472 bytes. Both link GTK 4 (and libsoup 3 for downloads) dynamically, like the hand-written one.
+The forge size is for the x86_64 build on `ubuntu-24.04`; the arm64 build is 133,472 bytes (hand-written: 14,544 bytes on x86_64, 67,568 bytes on arm64, as measured in CI). Both link GTK 4 (and libsoup 3 for downloads) dynamically, like the hand-written one.
 The macOS twin is compared in [`../macos/README.md`](../macos/README.md).
 
 ## What forge gives you that the manual version does not
