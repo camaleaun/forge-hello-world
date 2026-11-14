@@ -33,7 +33,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         label.font = .systemFont(ofSize: 15)
-        label.textColor = NSColor(srgbRed: 0x22 / 255, green: 0x22 / 255, blue: 0x22 / 255, alpha: 1)
 
         let button = NSButton(title: "Greet", target: self, action: #selector(greet))
         button.widthAnchor.constraint(equalToConstant: 100).isActive = true
