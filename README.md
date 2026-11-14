@@ -1,3 +1,5 @@
+<p align="center"><img src="icon.svg" alt="hello icon" width="128"></p>
+
 # forge-hello-world
 
 The smallest [forge](https://github.com/camaleaun/forge) app: a label, a button and a command, written as a tiny web app.
@@ -5,6 +7,7 @@ The smallest [forge](https://github.com/camaleaun/forge) app: a label, a button 
 - `package.json`: app name and version.
 - `App.tsx`: the markup (`<window>`, `<text>`, `<button>`) and the behavior (`state`, handlers, CLI commands).
 - `App.css`: the look (flex layout, sizes, colors).
+- `icon.svg`: the app icon (forge turns it into `AppIcon.icns`).
 
 ```tsx
 const message = state('Press the button');
