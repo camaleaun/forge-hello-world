@@ -30,7 +30,10 @@ sudo apt install g++ pkg-config libgtk-4-dev
 | Languages | a dropdown, the choice is remembered, language packs are downloaded | English only |
 | Packages | deb, rpm, tar.gz, snap, AppImage, desktop entry, AppStream data, icon | none: you get one binary |
 
-The forge size is for the x86_64 build on `ubuntu-24.04`; the arm64 build is 133,472 bytes (hand-written: 14,544 bytes on x86_64, 67,568 bytes on arm64, as measured in CI). Both link GTK 4 (and libsoup 3 for downloads) dynamically, like the hand-written one.
+The forge size is for the x86_64 build on `ubuntu-24.04`; the arm64 build is 88,440 bytes (hand-written: 14,544 bytes on x86_64, 10,224 bytes on arm64, as measured in CI).
+
+### Why the arm64 build used to be larger: 4 KB alignment
+An aarch64 linker aligns segments to 64 KB pages by default and pads the file to match, so the same program came out several times larger than on x86_64 (67,568 bytes against 14,544 for this one). Both builds now pass `-Wl,-z,max-page-size=4096 -Wl,-z,common-page-size=4096` (4 KB pages, what x86_64 already used), which dropped the hand-written arm64 binary to 10,224 bytes and the forge one from 133,472 to 88,440 bytes. Both link GTK 4 (and libsoup 3 for downloads) dynamically, like the hand-written one.
 The macOS twin is compared in [`../macos/README.md`](../macos/README.md).
 
 ## What forge gives you that the manual version does not

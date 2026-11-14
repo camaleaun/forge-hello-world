@@ -50,10 +50,13 @@ describe('given the comparison tables in the native READMEs', () => {
     const linux = read('native/linux/README.md');
     assert.match(linux, /92,776 bytes/);
     assert.match(linux, /14,544 bytes/);
-    assert.match(linux, /67,568 bytes/);
+    assert.match(linux, /10,224 bytes/);
+    assert.match(linux, /88,440 bytes/);
+    assert.match(linux, /4 KB/);
+    assert.match(linux, /max-page-size=4096/);
     assert.ok(!/see CI/.test(linux), 'real numbers, not a pointer');
     const mac = read('native/macos/README.md');
-    assert.match(mac, /113,256 bytes/);
+    assert.match(mac, /114,168 bytes/);
     assert.match(mac, /100,688 bytes/);
     assert.ok(!/73,448|100,880/.test(mac), 'stale macOS sizes');
   });
@@ -92,7 +95,8 @@ describe('given the repository README', () => {
   it('when the sizes are read, then the stale 73 KB is gone and the CI numbers are there', () => {
     const text = readme();
     assert.ok(!/73 KB/.test(text), 'stale size');
-    assert.match(text, /113 KB/);
+    assert.match(text, /114 KB/);
+    assert.match(text, /114,168 bytes/);
     assert.match(text, /92,776 bytes/);
   });
 

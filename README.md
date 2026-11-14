@@ -31,7 +31,7 @@ open build/out/hello-forge.app                       # the window
 
 On Linux add `--target linux` to `forge build` and run `build/out/hello-forge`.
 
-The macOS binary is about 113 KB (113,256 bytes in CI) and the Linux x86_64 one 92,776 bytes, both with the language support. Add `-DFORGE_UNIVERSAL=ON` to the configure step for an arm64 + x86_64 macOS build.
+The macOS binary is about 114 KB (114,168 bytes in CI) and the Linux x86_64 one 92,776 bytes, both with the language support. Add `-DFORGE_UNIVERSAL=ON` to the configure step for an arm64 + x86_64 macOS build.
 `.forge-ref` pins the forge commit that CI and releases use.
 
 ## Install on Linux
