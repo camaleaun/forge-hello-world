@@ -90,6 +90,12 @@ describe('given the hand-written native Linux hello (C++ + GTK 4), read as text'
     assert.match(sh, /pkg-config --exists gtk4/);
     assert.match(sh, /libgtk-4-dev/);
   });
+
+  it('when build.sh links, then it aligns segments to 4 KB pages like forge (aarch64 linkers pad to 64 KB otherwise)', () => {
+    const sh = read('build.sh');
+    assert.match(sh, /-Wl,-z,max-page-size=4096/);
+    assert.match(sh, /-Wl,-z,common-page-size=4096/);
+  });
 });
 
 describe('given the native Linux hello and a Linux machine with g++ and GTK 4 development files', { skip: !canBuild && skipReason }, () => {

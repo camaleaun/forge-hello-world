@@ -13,5 +13,5 @@ if ! pkg-config --exists gtk4 2>/dev/null; then
 fi
 
 g++ -std=c++17 -Os -ffunction-sections -fdata-sections main.cpp $(pkg-config --cflags --libs gtk4) \
-  -Wl,--gc-sections,--as-needed -s -o "$out/hello-forge"
+  -Wl,--gc-sections,--as-needed -Wl,-z,max-page-size=4096 -Wl,-z,common-page-size=4096 -s -o "$out/hello-forge"
 echo "built $out/hello-forge"
