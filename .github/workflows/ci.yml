@@ -28,3 +28,83 @@ jobs:
         run: npm test
         env:
           FORGE_HOME: ${{ github.workspace }}/forge
+      # A look at the runner's screen for the record; it is best effort and never fails the job.
+      - name: Screenshot
+        continue-on-error: true
+        run: |
+          mkdir -p "$RUNNER_TEMP/shots"
+          screencapture -x "$RUNNER_TEMP/shots/macos.png" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screens-macos
+          path: ${{ runner.temp }}/shots/*.png
+          if-no-files-found: ignore
+
+  # Real Linux runners (x86_64 and arm64): the tests, the generated app built with GTK 4, and the windows looked at
+  # under a virtual display (the forge version and, when it exists, the hand-written one).
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    env:
+      FORGE_HOME: ${{ github.workspace }}/forge
+      SHOTS_DIR: ${{ github.workspace }}/shots
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the pinned forge ref
+        id: ref
+        run: echo "ref=$(cat .forge-ref)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: camaleaun/forge
+          ref: ${{ steps.ref.outputs.ref }}
+          path: forge
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install the build and check tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake g++ pkg-config libgtk-4-dev libsoup-3.0-dev glib-networking \
+            rpm squashfs-tools desktop-file-utils appstream xvfb xdotool imagemagick dbus-x11
+      - name: Test
+        run: npm test
+      - name: Build the app made by forge
+        run: |
+          forge/bin/forge build --target linux --out "$RUNNER_TEMP/hello-src"
+          cmake -S "$RUNNER_TEMP/hello-src" -B "$RUNNER_TEMP/hello-build" -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$RUNNER_TEMP/hello-build"
+          binary="$RUNNER_TEMP/hello-build/hello-forge"
+          ls -l "$binary"
+          echo "FORGE_BINARY=$binary" >> "$GITHUB_ENV"
+          desktop-file-validate "$RUNNER_TEMP"/hello-src/*.desktop
+          # The language pack the way the app finds it after a download: <tag>-<12 hex of its sha256>.lang
+          mkdir -p "$RUNNER_TEMP/packs"
+          for lang in "$RUNNER_TEMP"/hello-src/lang/*.lang; do
+            sha="$(sha256sum "$lang" | cut -c1-12)"
+            cp "$lang" "$RUNNER_TEMP/packs/pt-BR-${sha}.lang"
+          done
+          ls -l "$RUNNER_TEMP/packs"
+      - name: Build the hand-written app
+        if: hashFiles('native/linux/build.sh') != ''
+        run: |
+          native/linux/build.sh "$RUNNER_TEMP/hello-native"
+          binary="$(find "$RUNNER_TEMP/hello-native" -type f -name hello-forge -perm -u+x | head -n 1)"
+          ls -l "$binary"
+          echo "NATIVE_BINARY=$binary" >> "$GITHUB_ENV"
+      - name: Look at the window made by forge under a virtual display
+        run: |
+          xvfb-run -a -s '-screen 0 1280x800x24' dbus-run-session -- bash test/gui/linux-window.sh "$FORGE_BINARY" forge "$RUNNER_TEMP/packs"
+      - name: Look at the hand-written window under a virtual display
+        if: hashFiles('native/linux/build.sh') != ''
+        run: |
+          xvfb-run -a -s '-screen 0 1280x800x24' dbus-run-session -- bash test/gui/linux-window.sh "$NATIVE_BINARY" native
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screens-linux-${{ matrix.os }}
+          path: ${{ github.workspace }}/shots/*.png
+          if-no-files-found: warn
