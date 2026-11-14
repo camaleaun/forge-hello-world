@@ -54,19 +54,19 @@ jobs:
           cmake --build build/out
       - name: Sign, notarize and staple the app (ad-hoc signature without secrets)
         run: |
-          forge/scripts/macos-sign.sh sign build/out/hello.app
-          forge/scripts/macos-sign.sh notarize build/out/hello.app
-          forge/scripts/macos-sign.sh staple build/out/hello.app
+          forge/scripts/macos-sign.sh sign build/out/hello-forge.app
+          forge/scripts/macos-sign.sh notarize build/out/hello-forge.app
+          forge/scripts/macos-sign.sh staple build/out/hello-forge.app
       - name: Package
         run: |
           version="$(forge/bin/forge info --field version)"
           mkdir -p dist
-          forge/scripts/macos-dmg.sh build/out/CPackConfig.cmake build/cpack hello
-          mv build/cpack/hello-*.dmg "dist/hello-${version}-darwin-arm64.dmg"
-          forge/scripts/macos-sign.sh sign "dist/hello-${version}-darwin-arm64.dmg"
-          forge/scripts/macos-sign.sh notarize "dist/hello-${version}-darwin-arm64.dmg"
-          forge/scripts/macos-sign.sh staple "dist/hello-${version}-darwin-arm64.dmg"
-          ditto -c -k --keepParent build/out/hello.app "dist/hello-${version}-darwin-arm64.zip"
+          forge/scripts/macos-dmg.sh build/out/CPackConfig.cmake build/cpack hello-forge
+          mv build/cpack/hello-forge-*.dmg "dist/hello-forge-${version}-darwin-arm64.dmg"
+          forge/scripts/macos-sign.sh sign "dist/hello-forge-${version}-darwin-arm64.dmg"
+          forge/scripts/macos-sign.sh notarize "dist/hello-forge-${version}-darwin-arm64.dmg"
+          forge/scripts/macos-sign.sh staple "dist/hello-forge-${version}-darwin-arm64.dmg"
+          ditto -c -k --keepParent build/out/hello-forge.app "dist/hello-forge-${version}-darwin-arm64.zip"
           # Language packs ship next to the app; the app downloads the one it needs from this release.
           cp build/src/lang/*.lang dist/
       - uses: actions/upload-artifact@v4

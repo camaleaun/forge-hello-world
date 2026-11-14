@@ -50,12 +50,12 @@ describe('given the repository workflows', () => {
     assert.ok(!text.includes('codesign --force --deep -s -'), 'signing must go through the script');
     for (const step of [
       'forge/scripts/macos-sign.sh import-certificate',
-      'forge/scripts/macos-sign.sh sign build/out/hello.app',
-      'forge/scripts/macos-sign.sh notarize build/out/hello.app',
-      'forge/scripts/macos-sign.sh staple build/out/hello.app',
-      'forge/scripts/macos-sign.sh sign "dist/hello-${version}-darwin-arm64.dmg"',
-      'forge/scripts/macos-sign.sh notarize "dist/hello-${version}-darwin-arm64.dmg"',
-      'forge/scripts/macos-sign.sh staple "dist/hello-${version}-darwin-arm64.dmg"',
+      'forge/scripts/macos-sign.sh sign build/out/hello-forge.app',
+      'forge/scripts/macos-sign.sh notarize build/out/hello-forge.app',
+      'forge/scripts/macos-sign.sh staple build/out/hello-forge.app',
+      'forge/scripts/macos-sign.sh sign "dist/hello-forge-${version}-darwin-arm64.dmg"',
+      'forge/scripts/macos-sign.sh notarize "dist/hello-forge-${version}-darwin-arm64.dmg"',
+      'forge/scripts/macos-sign.sh staple "dist/hello-forge-${version}-darwin-arm64.dmg"',
     ]) assert.ok(text.includes(step), step);
     for (const secret of ['MACOS_CERTIFICATE_P12', 'MACOS_CERTIFICATE_PASSWORD', 'MACOS_SIGNING_IDENTITY', 'NOTARY_KEY_P8', 'NOTARY_KEY_ID', 'NOTARY_ISSUER_ID']) {
       assert.ok(text.includes(`${secret}: \${{ secrets.${secret} }}`), secret);
@@ -64,7 +64,7 @@ describe('given the repository workflows', () => {
 
   it('when release.yml builds the DMG, then it goes through macos-dmg.sh (retries when the Finder keeps the volume busy)', () => {
     const text = readFileSync('.github/workflows/release.yml', 'utf8');
-    assert.ok(text.includes('forge/scripts/macos-dmg.sh build/out/CPackConfig.cmake build/cpack hello'));
+    assert.ok(text.includes('forge/scripts/macos-dmg.sh build/out/CPackConfig.cmake build/cpack hello-forge'));
     assert.ok(!/^\s*cpack /m.test(text), 'cpack must not be called directly');
   });
 });

@@ -19,14 +19,14 @@ describe('given the hand-written native macOS hello (Swift + AppKit)', { skip: !
     out = mkdtempSync(join(tmpdir(), 'hello-native-'));
     const build = spawnSync('bash', [buildScript, out], { encoding: 'utf8' });
     assert.equal(build.status, 0, build.stdout + build.stderr);
-    binary = join(out, 'hello.app/Contents/MacOS/hello');
+    binary = join(out, 'hello-forge.app/Contents/MacOS/hello-forge');
   });
   after(() => rmSync(out, { recursive: true, force: true }));
 
-  it('when built, then hello.app has the executable and an Info.plist', () => {
+  it('when built, then hello-forge.app has the executable and an Info.plist', () => {
     assert.ok(existsSync(binary));
-    assert.ok(existsSync(join(out, 'hello.app/Contents/Info.plist')));
-    console.log(`# native hello binary size: ${statSync(binary).size} bytes`);
+    assert.ok(existsSync(join(out, 'hello-forge.app/Contents/Info.plist')));
+    console.log(`# native hello-forge binary size: ${statSync(binary).size} bytes`);
   });
 
   it('when run with --greet, then it prints the same greeting as the forge version', () => {
@@ -41,7 +41,7 @@ describe('given the hand-written native macOS hello (Swift + AppKit)', { skip: !
 
   it('when run with --help, then it lists the same options as the forge version', () => {
     const { stdout } = run('--help');
-    assert.match(stdout, /^Usage: hello \[option\]/);
+    assert.match(stdout, /^Usage: hello-forge \[option\]/);
     for (const flag of ['--greet', '--version', '--help']) assert.ok(stdout.includes(flag), flag);
   });
 
@@ -56,7 +56,7 @@ describe('given the hand-written native macOS hello (Swift + AppKit)', { skip: !
     try {
       const build = spawnSync('bash', [buildScript, 'rel-out'], { encoding: 'utf8', cwd });
       assert.equal(build.status, 0, build.stdout + build.stderr);
-      assert.ok(existsSync(join(cwd, 'rel-out/hello.app/Contents/MacOS/hello')));
+      assert.ok(existsSync(join(cwd, 'rel-out/hello-forge.app/Contents/MacOS/hello-forge')));
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

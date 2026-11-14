@@ -24,7 +24,7 @@ function runIn(language: string, ...args: string[]) {
   const lang = join(work, 'src/lang');
   mkdirSync(cache, { recursive: true });
   for (const file of readdirSync(lang)) {
-    const tag = file.replace(/^hello-.*?-(pt-BR)\.lang$/, '$1');
+    const tag = file.replace(/^hello-forge-.*?-(pt-BR)\.lang$/, '$1');
     const sha = createHash('sha256').update(readFileSync(join(lang, file))).digest('hex').slice(0, 12);
     copyFileSync(join(lang, file), join(cache, `${tag}-${sha}.lang`));
   }
@@ -41,39 +41,39 @@ describe('given the hello-world sources and a forge checkout', { skip: !canBuild
     assert.equal(configure.status, 0, configure.stdout + configure.stderr);
     const build = spawnSync('cmake', ['--build', join(work, 'build')], { encoding: 'utf8' });
     assert.equal(build.status, 0, build.stdout + build.stderr);
-    binary = join(work, 'build/hello.app/Contents/MacOS/hello');
+    binary = join(work, 'build/hello-forge.app/Contents/MacOS/hello-forge');
   });
   after(() => rmSync(work, { recursive: true, force: true }));
 
-  it('when "hello --greet" runs, then it prints the greeting', () => {
+  it('when "hello-forge --greet" runs, then it prints the greeting', () => {
     assert.equal(run('--greet').stdout, 'Hello, world!\n');
   });
 
-  it('when "hello --version" runs, then it prints the version from package.json', () => {
+  it('when "hello-forge --version" runs, then it prints the version from package.json', () => {
     assert.equal(run('--version').stdout, `${version}\n`);
   });
 
-  it('when the pack is in the cache and "hello --lang pt-BR --greet" runs, then it prints the translation', () => {
+  it('when the pack is in the cache and "hello-forge --lang pt-BR --greet" runs, then it prints the translation', () => {
     assert.equal(runIn('pt-BR', '--greet').stdout, 'Olá, mundo!\n');
   });
 
-  it('when "hello --help" runs in pt-BR, then the option description is translated', () => {
+  it('when "hello-forge --help" runs in pt-BR, then the option description is translated', () => {
     assert.match(runIn('pt-BR', '--help').stdout, /Mostra a saudação/);
   });
 
-  it('when "hello --help" runs in pt-BR, then forge\'s own texts come translated too, and --lang en goes back to English with the pack still cached', () => {
+  it('when "hello-forge --help" runs in pt-BR, then forge\'s own texts come translated too, and --lang en goes back to English with the pack still cached', () => {
     assert.match(runIn('pt-BR', '--help').stdout, /--version {2}Mostra a versão/);
     assert.match(runIn('en', '--help').stdout, /--version {2}Print the version/);
     assert.equal(runIn('en', '--greet').stdout, 'Hello, world!\n');
   });
 
   it('when the build runs, then one pack file per language is generated', () => {
-    assert.deepEqual(readdirSync(join(work, 'src/lang')), [`hello-${version}-pt-BR.lang`]);
+    assert.deepEqual(readdirSync(join(work, 'src/lang')), [`hello-forge-${version}-pt-BR.lang`]);
   });
 
   it('when the binary size is measured, then it is under 300 KB', () => {
     const size = statSync(binary).size;
-    console.log(`# hello binary size: ${size} bytes`);
+    console.log(`# hello-forge binary size: ${size} bytes`);
     assert.ok(size < MAX_BINARY_BYTES, `${size} bytes`);
   });
 });

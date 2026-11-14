@@ -5,9 +5,9 @@ a window (320x120 at first, resizable) titled "Hello, forge", a label ("Press th
 and the same command line (`--greet`, `--version`, `--help`, exit code 2 for unknown options) in the same binary.
 
 ```sh
-native/macos/build.sh              # builds native/macos/build/hello.app (needs macOS and swiftc)
-native/macos/build/hello.app/Contents/MacOS/hello --greet
-open native/macos/build/hello.app
+native/macos/build.sh              # builds native/macos/build/hello-forge.app (needs macOS and swiftc)
+native/macos/build/hello-forge.app/Contents/MacOS/hello-forge --greet
+open native/macos/build/hello-forge.app
 ```
 
 ## Side by side

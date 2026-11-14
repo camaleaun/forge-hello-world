@@ -3,7 +3,7 @@ import AppKit
 
 let version = "0.1.0"
 let help = """
-Usage: hello [option]
+Usage: hello-forge [option]
 
 Options:
   --greet    Print the greeting
@@ -55,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.makeKeyAndOrderFront(nil)
 
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "Quit hello", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit hello-forge", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let appMenuItem = NSMenuItem()
         appMenuItem.submenu = appMenu
         let mainMenu = NSMenu()

@@ -1,6 +1,9 @@
 {
-  "name": "hello",
-  "version": "0.2.0-rc.1",
+  "name": "hello-forge",
+  "version": "0.2.0-rc.2",
+  "description": "The smallest forge app: a label, a button and a command, written as a tiny web app.",
+  "license": "MIT",
+  "homepage": "https://github.com/camaleaun/forge-hello-world",
   "private": true,
   "type": "module",
   "scripts": {
