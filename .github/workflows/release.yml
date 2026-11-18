@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+env:
+  # The Snap Store (outside our control) is sometimes down. With 'false' a failed snap build is a warning and the release has no .snap;
+  # set 'true' to require it again.
+  SNAP_REQUIRED: 'false'
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -91,11 +96,12 @@ jobs:
         env:
           FORGE_HOME: ${{ github.workspace }}/forge
       # Build, sign (optional), package and upload the dist artifact. Without signing inputs the app is signed ad-hoc.
-      - uses: camaleaun/forge-action@v1.3.0
+      - uses: camaleaun/forge-action@v1.3.1
         with:
           target: ${{ matrix.target }}
           artifact-name: ${{ matrix.artifact }}
           locale: ${{ matrix.locale }}
+          snap-required: ${{ env.SNAP_REQUIRED }}
           forge-ref: ${{ needs.check.outputs.forge-ref }}
           macos-certificate-p12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           macos-certificate-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -140,6 +146,7 @@ jobs:
       - name: Write and check latest.json
         env:
           VERSION: ${{ needs.check.outputs.version }}
+          SNAP_REQUIRED: ${{ env.SNAP_REQUIRED }}
         run: |
           forge/bin/forge manifest --dir dist --tag "v${VERSION}" --repo "$GITHUB_REPOSITORY" > latest.json
           for platform in darwin-arm64 linux-x86_64 linux-arm64; do
@@ -147,8 +154,10 @@ jobs:
           done
           cat latest.json
           # Every file is listed with its real sha256 and size, and the pt-BR variant has every package of every platform.
+          linux="deb,rpm,snap,appimage,tar.gz"
+          if [ "$SNAP_REQUIRED" = "false" ]; then linux="deb,rpm,appimage,tar.gz"; fi
           node scripts/check-manifest.mjs latest.json dist --variant pt-BR \
-            --expect "darwin-arm64:dmg,zip;linux-x86_64:deb,rpm,snap,appimage,tar.gz;linux-arm64:deb,rpm,snap,appimage,tar.gz"
+            --expect "darwin-arm64:dmg,zip;linux-x86_64:${linux};linux-arm64:${linux}"
       - uses: actions/upload-artifact@v4
         with:
           name: manifest
@@ -234,7 +243,7 @@ jobs:
       # The release command needs a repository to run in.
       - uses: actions/checkout@v4
       # TEMPORARY @trunk, like the build action above.
-      - uses: camaleaun/forge-action/publish@v1.3.0
+      - uses: camaleaun/forge-action/publish@v1.3.1
         with:
           forge-ref: ${{ needs.check.outputs.forge-ref }}
           pattern: dist-*

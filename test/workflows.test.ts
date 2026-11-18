@@ -27,12 +27,21 @@ describe('given the repository workflows', () => {
     return match[0];
   };
 
-  it('when release.yml builds, then it uses the reusable forge-action pinned to v1.3.0 (the tag with the locale input), not the moving v1 and not trunk', () => {
+  it('when release.yml builds, then it uses the reusable forge-action pinned to v1.3.1 (locale and snap-required inputs), not the moving v1 and not trunk', () => {
     const text = release();
-    assert.match(text, /uses: camaleaun\/forge-action@v1\.3\.0\b/);
-    assert.match(text, /uses: camaleaun\/forge-action\/publish@v1\.3\.0\b/);
+    assert.match(text, /uses: camaleaun\/forge-action@v1\.3\.1\b/);
+    assert.match(text, /uses: camaleaun\/forge-action\/publish@v1\.3\.1\b/);
     assert.ok(!/forge-action(\/publish)?@v1\s*$/m.test(text), 'never the moving v1');
     assert.ok(!/forge-action(\/publish)?@trunk/.test(text), 'never trunk');
+  });
+
+  it('when release.yml is read, then a Snap Store outage does not block a release: SNAP_REQUIRED (workflow env) feeds the action input snap-required and the manifest check expects the snap only when it is required', () => {
+    const text = release();
+    assert.match(text, /\nenv:\n(?: {2}.*\n)*? {2}SNAP_REQUIRED: '(true|false)'/);
+    assert.match(text, /snap-required: \$\{\{ env\.SNAP_REQUIRED \}\}/);
+    const manifest = job('manifest');
+    assert.match(manifest, /SNAP_REQUIRED: \$\{\{ env\.SNAP_REQUIRED \}\}/);
+    assert.match(manifest, /\[ "\$SNAP_REQUIRED" = "false" \]/);
   });
 
   it('when release.yml builds, then the matrix is 3 platforms x {default, pt-BR} with distinct artifact names dist-<platform>[-pt-BR]', () => {
@@ -69,7 +78,7 @@ describe('given the repository workflows', () => {
 
   it('when release.yml builds, then the tests run before the action, with a forge checkout and the GTK packages on Linux', () => {
     const build = job('build');
-    assert.ok(build.indexOf('npm test') > 0 && build.indexOf('npm test') < build.indexOf('camaleaun/forge-action@v1.3.0'));
+    assert.ok(build.indexOf('npm test') > 0 && build.indexOf('npm test') < build.indexOf('camaleaun/forge-action@v1.3.1'));
     assert.match(build, /FORGE_HOME: \$\{\{ github\.workspace \}\}\/forge/);
     assert.match(build, /name: Test\n\s+if: matrix\.locale == ''\n\s+run: npm test/, 'the tests run once per platform, on the default build');
     assert.match(build, /if: matrix\.target == 'linux'[\s\S]*apt-get install[^\n]*libgtk-4-dev[^\n]*libsoup-3\.0-dev[^\n]*glib-networking/);
