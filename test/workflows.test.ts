@@ -27,12 +27,12 @@ describe('given the repository workflows', () => {
     return match[0];
   };
 
-  // TEMPORARY: the `locale` input is on forge-action trunk only; the next tag (after the owner's OK) replaces @trunk with it.
-  it('when release.yml builds, then it uses the reusable forge-action from trunk until the tag with the locale input exists', () => {
+  it('when release.yml builds, then it uses the reusable forge-action pinned to v1.3.0 (the tag with the locale input), not the moving v1 and not trunk', () => {
     const text = release();
-    assert.match(text, /uses: camaleaun\/forge-action@trunk\b/);
-    assert.match(text, /uses: camaleaun\/forge-action\/publish@trunk\b/);
+    assert.match(text, /uses: camaleaun\/forge-action@v1\.3\.0\b/);
+    assert.match(text, /uses: camaleaun\/forge-action\/publish@v1\.3\.0\b/);
     assert.ok(!/forge-action(\/publish)?@v1\s*$/m.test(text), 'never the moving v1');
+    assert.ok(!/forge-action(\/publish)?@trunk/.test(text), 'never trunk');
   });
 
   it('when release.yml builds, then the matrix is 3 platforms x {default, pt-BR} with distinct artifact names dist-<platform>[-pt-BR]', () => {
@@ -69,7 +69,7 @@ describe('given the repository workflows', () => {
 
   it('when release.yml builds, then the tests run before the action, with a forge checkout and the GTK packages on Linux', () => {
     const build = job('build');
-    assert.ok(build.indexOf('npm test') > 0 && build.indexOf('npm test') < build.indexOf('camaleaun/forge-action@trunk'));
+    assert.ok(build.indexOf('npm test') > 0 && build.indexOf('npm test') < build.indexOf('camaleaun/forge-action@v1.3.0'));
     assert.match(build, /FORGE_HOME: \$\{\{ github\.workspace \}\}\/forge/);
     assert.match(build, /name: Test\n\s+if: matrix\.locale == ''\n\s+run: npm test/, 'the tests run once per platform, on the default build');
     assert.match(build, /if: matrix\.target == 'linux'[\s\S]*apt-get install[^\n]*libgtk-4-dev[^\n]*libsoup-3\.0-dev[^\n]*glib-networking/);

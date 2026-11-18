@@ -91,8 +91,7 @@ jobs:
         env:
           FORGE_HOME: ${{ github.workspace }}/forge
       # Build, sign (optional), package and upload the dist artifact. Without signing inputs the app is signed ad-hoc.
-      # TEMPORARY @trunk: the `locale` input is not in a tag yet; the next forge-action tag replaces it after the owner's OK.
-      - uses: camaleaun/forge-action@trunk
+      - uses: camaleaun/forge-action@v1.3.0
         with:
           target: ${{ matrix.target }}
           artifact-name: ${{ matrix.artifact }}
@@ -235,7 +234,7 @@ jobs:
       # The release command needs a repository to run in.
       - uses: actions/checkout@v4
       # TEMPORARY @trunk, like the build action above.
-      - uses: camaleaun/forge-action/publish@trunk
+      - uses: camaleaun/forge-action/publish@v1.3.0
         with:
           forge-ref: ${{ needs.check.outputs.forge-ref }}
           pattern: dist-*
