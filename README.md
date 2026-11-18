@@ -88,7 +88,7 @@ hello-forge --greet                  # Olá, mundo!   (pt-BR variant; the defaul
 hello-forge --locale en --greet      # Hello, world!
 ```
 
-`latest.json` lists the default files under `platforms` and `packages` exactly as before, and the variant files under a new `variants` key: `variants["pt-BR"]["darwin-arm64"].dmg`, `variants["pt-BR"]["linux-x86_64"].deb`, and so on (`dmg`, `zip`, `deb`, `rpm`, `snap`, `appimage`, `tar.gz`). The release workflow builds 3 platforms x {default, pt-BR}; artifacts are named `dist-<platform>` and `dist-macos-pt-BR`-style (`dist-<platform>-pt-BR`). Because every pack is inside the variant, it has no HTTP client at all (no libsoup on Linux, no `NSURLSession` on macOS): on macOS the variant binary is 110,856 bytes against 131,704 for the default package (20,848 bytes, 16%, less).
+`latest.json` lists the default files under `platforms` and `packages` exactly as before, and the variant files under a new `variants` key: `variants["pt-BR"]["darwin-arm64"].dmg`, `variants["pt-BR"]["linux-x86_64"].deb`, and so on (`dmg`, `zip`, `deb`, `rpm`, `snap`, `appimage`, `tar.gz`). The release workflow builds 3 platforms x {default, pt-BR}; artifacts are named `dist-<platform>` and `dist-macos-pt-BR`-style (`dist-<platform>-pt-BR`). Because every pack is inside the variant, it has no HTTP client at all (no libsoup on Linux, no `NSURLSession` on macOS): in the 0.4.0-rc.3 dry run the binary is 128,368 bytes against 149,088 on macOS (14% less), 76,488 against 113,352 on Linux x86_64 (33% less) and 76,216 against 109,016 on arm64 (30% less).
 
 To build one yourself: `forge build --out build/src --bundle-locale pt-BR` and `cmake -S build/src -B build/out -DFORGE_VARIANT=pt-BR`.
 
