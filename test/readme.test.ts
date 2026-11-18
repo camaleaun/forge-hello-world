@@ -106,4 +106,12 @@ describe('given the repository README', () => {
     assert.match(text, /\]\(native\/macos\)/);
     assert.match(text, /\]\(native\/linux\)/);
   });
+
+  it('when the language variants are read, then the README explains the pt-BR packages, their file names and the manifest', () => {
+    const text = readme();
+    assert.match(text, /## Language variants/);
+    for (const word of ['hello-forge-<version>-darwin-arm64-pt-BR.dmg', 'hello-forge-<version>-linux-<arch>-pt-BR.deb', 'dist-macos-pt-BR', 'variants', 'Olá, mundo!', 'no download']) {
+      assert.ok(text.includes(word), word);
+    }
+  });
 });

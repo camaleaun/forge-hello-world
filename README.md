@@ -72,6 +72,26 @@ The app is written in English and has one translation, `languages/pt-BR.lang` (o
 
 To turn downloads off, set `"forge": { "i18n": { "download": false } }` in `package.json`. The command line takes `--locale pt-BR` (cache only, no network).
 
+## Language variants
+
+Every release has two sets of packages. The default ones are English and detect the system language, downloading the pack on first use (as above). The **pt-BR variant** has the Portuguese pack built into the app: it opens in Portuguese on the first launch, offline, with no download, and the language dropdown still lets you switch to English. A variant ignores the system language (and `LANG`, `LC_ALL` and `LC_MESSAGES` for the command line): the order is `FORGE_LOCALE_PREFERENCE`, then your choice in the dropdown, then pt-BR; on the command line `--locale`, then `FORGE_LOCALE`, then your choice, then pt-BR.
+
+The variant files have `-pt-BR` before the extension, and the app is the same app (same name, same app id, same settings):
+
+```text
+hello-forge-<version>-darwin-arm64-pt-BR.dmg   hello-forge-<version>-darwin-arm64-pt-BR.zip
+hello-forge-<version>-linux-<arch>-pt-BR.deb   .rpm   .snap   .AppImage   .tar.gz
+```
+
+```sh
+hello-forge --greet                  # Olá, mundo!   (pt-BR variant; the default package prints Hello, world!)
+hello-forge --locale en --greet      # Hello, world!
+```
+
+`latest.json` lists the default files under `platforms` and `packages` exactly as before, and the variant files under a new `variants` key: `variants["pt-BR"]["darwin-arm64"].dmg`, `variants["pt-BR"]["linux-x86_64"].deb`, and so on (`dmg`, `zip`, `deb`, `rpm`, `snap`, `appimage`, `tar.gz`). The release workflow builds 3 platforms x {default, pt-BR}; artifacts are named `dist-<platform>` and `dist-macos-pt-BR`-style (`dist-<platform>-pt-BR`). Because every pack is inside the variant, it has no HTTP client at all (no libsoup on Linux, no `NSURLSession` on macOS): on macOS the variant binary is 110,856 bytes against 131,704 for the default package (20,848 bytes, 16%, less).
+
+To build one yourself: `forge build --out build/src --bundle-locale pt-BR` and `cmake -S build/src -B build/out -DFORGE_VARIANT=pt-BR`.
+
 ## macOS signing and notarization
 Without secrets, releases are signed ad-hoc and not notarized: on first launch macOS may refuse to open the app
 (System Settings > Privacy & Security > "Open Anyway", or `xattr -dr com.apple.quarantine /Applications/hello-forge.app`).

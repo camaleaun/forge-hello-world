@@ -48,12 +48,27 @@ jobs:
           - os: macos-latest
             target: macos
             artifact: dist-macos
+            locale: ''
+          - os: macos-latest
+            target: macos
+            artifact: dist-macos-pt-BR
+            locale: 'pt-BR'
           - os: ubuntu-24.04
             target: linux
             artifact: dist-linux-x86_64
+            locale: ''
+          - os: ubuntu-24.04
+            target: linux
+            artifact: dist-linux-x86_64-pt-BR
+            locale: 'pt-BR'
           - os: ubuntu-24.04-arm
             target: linux
             artifact: dist-linux-arm64
+            locale: ''
+          - os: ubuntu-24.04-arm
+            target: linux
+            artifact: dist-linux-arm64-pt-BR
+            locale: 'pt-BR'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -71,14 +86,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends cmake g++ pkg-config libgtk-4-dev libsoup-3.0-dev glib-networking
       - name: Test
+        if: matrix.locale == ''
         run: npm test
         env:
           FORGE_HOME: ${{ github.workspace }}/forge
       # Build, sign (optional), package and upload the dist artifact. Without signing inputs the app is signed ad-hoc.
-      - uses: camaleaun/forge-action@v1.2.0
+      # TEMPORARY @trunk: the `locale` input is not in a tag yet; the next forge-action tag replaces it after the owner's OK.
+      - uses: camaleaun/forge-action@trunk
         with:
           target: ${{ matrix.target }}
           artifact-name: ${{ matrix.artifact }}
+          locale: ${{ matrix.locale }}
           forge-ref: ${{ needs.check.outputs.forge-ref }}
           macos-certificate-p12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           macos-certificate-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -92,6 +110,7 @@ jobs:
     needs: [check, build]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
           repository: camaleaun/forge
@@ -128,6 +147,9 @@ jobs:
             grep -q "\"$platform\"" latest.json || { echo "latest.json has no $platform" >&2; exit 1; }
           done
           cat latest.json
+          # Every file is listed with its real sha256 and size, and the pt-BR variant has every package of every platform.
+          node scripts/check-manifest.mjs latest.json dist --variant pt-BR \
+            --expect "darwin-arm64:dmg,zip;linux-x86_64:deb,rpm,snap,appimage,tar.gz;linux-arm64:deb,rpm,snap,appimage,tar.gz"
       - uses: actions/upload-artifact@v4
         with:
           name: manifest
@@ -148,6 +170,10 @@ jobs:
         with:
           name: dist-linux-${{ matrix.arch }}
           path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-linux-${{ matrix.arch }}-pt-BR
+          path: dist-pt-BR
       - name: Install the .deb on Ubuntu 24.04 and run the installed app
         run: |
           docker run --rm -v "$PWD/dist:/dist:ro" ubuntu:24.04 bash -euc '
@@ -161,6 +187,19 @@ jobs:
             cp "$pack" "/tmp/cache/pt-BR-$sha.lang"
             test "$(FORGE_I18N_CACHE_DIR=/tmp/cache hello-forge --locale pt-BR --greet)" = "Olá, mundo!"
           '
+      - name: Install the pt-BR .deb on Ubuntu 24.04 (empty cache, no pack server) and run it
+        run: |
+          docker run --rm -v "$PWD/dist-pt-BR:/dist-pt-BR:ro" ubuntu:24.04 bash -euc '
+            apt-get update -qq
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq /dist-pt-BR/hello-forge-*-pt-BR.deb
+            hello-forge --version
+            mkdir -p /tmp/empty-cache
+            export FORGE_I18N_CACHE_DIR=/tmp/empty-cache FORGE_I18N_BASE_URL=http://127.0.0.1:9/ LANG=en_US.UTF-8
+            test "$(FORGE_I18N_CACHE_DIR=/tmp/empty-cache FORGE_I18N_BASE_URL=http://127.0.0.1:9/ hello-forge --greet)" = "Olá, mundo!"
+            test "$(hello-forge --locale en --greet)" = "Hello, world!"
+            test -z "$(ls -A /tmp/empty-cache)"
+            if ldd "$(command -v hello-forge)" | grep -q soup; then echo "the variant links libsoup" >&2; exit 1; fi
+          '
       - name: Install the .rpm on Fedora 41 and run the installed app
         run: |
           docker run --rm -v "$PWD/dist:/dist:ro" fedora:41 bash -euc '
@@ -173,6 +212,18 @@ jobs:
             cp "$pack" "/tmp/cache/pt-BR-$sha.lang"
             test "$(FORGE_I18N_CACHE_DIR=/tmp/cache hello-forge --locale pt-BR --greet)" = "Olá, mundo!"
           '
+      - name: Install the pt-BR .rpm on Fedora 41 (empty cache, no pack server) and run it
+        run: |
+          docker run --rm -v "$PWD/dist-pt-BR:/dist-pt-BR:ro" fedora:41 bash -euc '
+            dnf install -y -q /dist-pt-BR/hello-forge-*-pt-BR.rpm
+            hello-forge --version
+            mkdir -p /tmp/empty-cache
+            export FORGE_I18N_CACHE_DIR=/tmp/empty-cache FORGE_I18N_BASE_URL=http://127.0.0.1:9/ LANG=en_US.UTF-8
+            test "$(FORGE_I18N_CACHE_DIR=/tmp/empty-cache FORGE_I18N_BASE_URL=http://127.0.0.1:9/ hello-forge --greet)" = "Olá, mundo!"
+            test "$(hello-forge --locale en --greet)" = "Hello, world!"
+            test -z "$(ls -A /tmp/empty-cache)"
+            if ldd "$(command -v hello-forge)" | grep -q soup; then echo "the variant links libsoup" >&2; exit 1; fi
+          '
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -183,7 +234,8 @@ jobs:
     steps:
       # The release command needs a repository to run in.
       - uses: actions/checkout@v4
-      - uses: camaleaun/forge-action/publish@v1.2.0
+      # TEMPORARY @trunk, like the build action above.
+      - uses: camaleaun/forge-action/publish@trunk
         with:
           forge-ref: ${{ needs.check.outputs.forge-ref }}
           pattern: dist-*

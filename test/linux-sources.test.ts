@@ -28,7 +28,7 @@ describe('given the hello-forge sources generated for Linux', () => {
   it('when CMakeLists.txt is read, then the target, the package and the file names are hello-forge', () => {
     const cmake = readFileSync(join(out, 'CMakeLists.txt'), 'utf8');
     assert.match(cmake, /project\(hello-forge VERSION 0\.4\.0 LANGUAGES CXX\)/);
-    assert.ok(cmake.includes(`CPACK_PACKAGE_FILE_NAME "hello-forge-${version}-linux-\${FORGE_ARCH}"`));
+    assert.ok(cmake.includes(`CPACK_PACKAGE_FILE_NAME "hello-forge-${version}-linux-\${FORGE_ARCH}\${FORGE_VARIANT_SUFFIX}"`));
     assert.ok(cmake.includes(version));
   });
 
@@ -79,5 +79,27 @@ describe('given the hello-forge UI built for each target', () => {
     assert.equal(createHash('sha256').update(a).digest('hex'), createHash('sha256').update(b).digest('hex'));
     assert.match(a.toString('utf8'), /Quit with Cmd\+Q\tSaia com Cmd\+Q/);
     assert.match(a.toString('utf8'), /Quit with Ctrl\+Q\tSaia com Ctrl\+Q/);
+  });
+});
+
+// The pt-BR variant: the pack is inside the binary, so no HTTP library and no libsoup.
+describe('given the hello-forge pt-BR variant generated for Linux', () => {
+  let variant = '';
+  before(() => {
+    variant = mkdtempSync(join(tmpdir(), 'hello-forge-variant-'));
+    const result = spawnSync(join(forgeHome, 'bin/forge'), ['build', '--target', 'linux', '--strict-i18n', '--bundle-locale', 'pt-BR', '--project', project, '--out', variant], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+  });
+  after(() => rmSync(variant, { recursive: true, force: true }));
+
+  it('when the sources are read, then Portuguese is bundled and there is no HTTP library, no libsoup and no download dependency', () => {
+    const messages = readFileSync(join(variant, 'messages.cpp'), 'utf8');
+    assert.match(messages, /BUNDLED_LOCALE = "pt-BR"/);
+    assert.match(messages, /Olá, mundo!/);
+    assert.ok(!existsSync(join(variant, 'http.hpp')));
+    const cmake = readFileSync(join(variant, 'CMakeLists.txt'), 'utf8');
+    assert.doesNotMatch(cmake, /soup|glib-networking|http_/);
+    assert.match(cmake, /set\(FORGE_VARIANT "" CACHE STRING/);
+    assert.doesNotMatch(readFileSync(join(variant, 'snap/snapcraft.yaml'), 'utf8'), /soup|network/);
   });
 });
